@@ -1,6 +1,10 @@
 function init() {
 
     var scale = chroma.scale(['green', 'white']);
+    var frame_id;
+
+    var current_vel, current_disk;
+    var disks = [];
 
     var stats = initStats();
 
@@ -36,9 +40,11 @@ function init() {
     );
     disk.position.set(0,1.5,0);
     disk.__dirtyPosition = true;
+    current_disk = 0;
 
     // add the disk to the scene
     scene.add(disk);
+    disks.push(disk);
 
     // position and point the camera to the center of the scene
     camera.position.set(50, 30, 50);
@@ -52,13 +58,37 @@ function init() {
     // add the output of the renderer to the html element
     document.getElementById("viewport").appendChild(webGLRenderer.domElement);
 
-    var ground = createGround();
+    // Create ground
+    var ground_material = Physijs.createMaterial(
+        new THREE.MeshPhongMaterial({map: THREE.ImageUtils.loadTexture('assets/textures/wood-2.jpg')}),
+        .9, .3);
+
+    var ground = new Physijs.BoxMesh(new THREE.BoxGeometry(60, 1, 60), ground_material, 0);
     scene.add(ground);
+
+    var borderLeft = new Physijs.BoxMesh(new THREE.BoxGeometry(2, 3, 60), ground_material, 0);
+    borderLeft.position.x = -31;
+    borderLeft.position.y = 2;
+    scene.add(borderLeft);
+
+    var borderRight = new Physijs.BoxMesh(new THREE.BoxGeometry(2, 3, 60), ground_material, 0);
+    borderRight.position.x = 31;
+    borderRight.position.y = 2;
+    scene.add(borderRight);
+
+    var borderBottom = new Physijs.BoxMesh(new THREE.BoxGeometry(64, 3, 2), ground_material, 0);
+    borderBottom.position.z = 30;
+    borderBottom.position.y = 2;
+    scene.add(borderBottom);
+
+    var borderTop = new Physijs.BoxMesh(new THREE.BoxGeometry(64, 3, 2), ground_material, 0);
+    borderTop.position.z = -30;
+    borderTop.position.y = 2;
+    scene.add(borderTop);
 
 
     // call the render function
     var step = 0;
-
 
     // setup the control gui
     var controls = new function () {
@@ -71,6 +101,7 @@ function init() {
             // remove the old plane
             scene.remove(disk);
             // create a new one
+            current_disk = 0;
             disk_material = Physijs.createMaterial(
                 new THREE.MeshLambertMaterial({color: 0x444444, opacity: 0.9, transparent: true}),
                 controls.diskRestitution, // high friction
@@ -83,12 +114,12 @@ function init() {
                 disk_material,
                 100
             );
-            disk.position.set(0,1.5,0);
+            disk.position.set(0,1.25,0);
             disk.__dirtyPosition = true;
-            // add it to the scene.
+            // add it to the scene and to the array of disks.
             scene.add(disk);
+            disks.push(disk);
             render();
-            disk.setLinearVelocity(new THREE.Vector3(0,0,-controls.velocity));
 
         };
     };
@@ -98,12 +129,39 @@ function init() {
     gui.add(controls, 'diskFriction', 0, 1).onChange(controls.redraw);
     gui.add(controls, 'velocity', 0, 100).onChange(controls.redraw);
 
-
     render();
-    disk.setLinearVelocity(new THREE.Vector3(0,0,-controls.velocity));
 
     function render() {
         stats.update();
+
+        if (current_disk < disks.length) {
+
+            // motion
+            var min = -5, max = 5;
+            var ran_number = Math.random() * (max - min) + min;
+            current_vel = disks[current_disk].getLinearVelocity();
+            disks[current_disk].setLinearVelocity(new THREE.Vector3(current_vel.x + ran_number, 0, -controls.velocity));
+
+            // collision
+            var cdisk = disks[current_disk];
+            var originPoint = cdisk.position.clone();
+            for (var vertexIndex = 0; vertexIndex < cdisk.geometry.vertices.length; vertexIndex++) {
+                var localVertex = cdisk.geometry.vertices[vertexIndex].clone();
+                var globalVertex = localVertex.applyMatrix4(cdisk.matrix);
+                var directionVector = globalVertex.sub(cdisk.position);
+                var ray = new THREE.Raycaster(originPoint, directionVector.clone().normalize());
+                var collisionResults = ray.intersectObjects([borderTop]);
+                if (collisionResults.length > 0 && collisionResults[0].distance < directionVector.length()) {
+                    // if we've got a hit, we just stop the disk and move it behind the wall
+                    console.log('hit');
+                    cdisk.setLinearVelocity(new THREE.Vector3(0, 0, 0));
+                    cdisk.position.set(cdisk.position.x, cdisk.position.y, -50);
+                    cdisk.matrixAutoUpdate  = false;
+                    cdisk.updateMatrix();
+                    current_disk += 1;
+                }
+            }
+        }
 
         // render using requestAnimationFrame
         requestAnimationFrame(render);
@@ -130,34 +188,5 @@ function initStats() {
     return stats;
 }
 
-function createGround() {
-    var ground_material = Physijs.createMaterial(
-        new THREE.MeshPhongMaterial({map: THREE.ImageUtils.loadTexture('assets/textures/wood-2.jpg')}),
-        .9, .3);
-
-    var ground = new Physijs.BoxMesh(new THREE.BoxGeometry(60, 1, 60), ground_material, 0);
-
-    var borderLeft = new Physijs.BoxMesh(new THREE.BoxGeometry(2, 3, 60), ground_material, 0);
-    borderLeft.position.x = -31;
-    borderLeft.position.y = 2;
-    ground.add(borderLeft);
-
-    var borderRight = new Physijs.BoxMesh(new THREE.BoxGeometry(2, 3, 60), ground_material, 0);
-    borderRight.position.x = 31;
-    borderRight.position.y = 2;
-    ground.add(borderRight);
-
-    var borderBottom = new Physijs.BoxMesh(new THREE.BoxGeometry(64, 3, 2), ground_material, 0);
-    borderBottom.position.z = 30;
-    borderBottom.position.y = 2;
-    ground.add(borderBottom);
-
-    var borderTop = new Physijs.BoxMesh(new THREE.BoxGeometry(64, 3, 2), ground_material, 0);
-    borderTop.position.z = -30;
-    borderTop.position.y = 2;
-    ground.add(borderTop);
-
-    return ground;
-}
 
 window.onload = init;
