@@ -72,6 +72,10 @@ function init() {
     borderTop.position.y = 2;
     scene.add(borderTop);
 
+    var n_piles = Math.round(60 / (2 * 4)) // borderTopLength / 2 * diskRadius
+    var disk_piles = new Array(n_piles).fill(0);
+
+
 
     // call the render function
     var step = 0;
@@ -136,13 +140,24 @@ function init() {
                 var ray = new THREE.Raycaster(originPoint, directionVector.clone().normalize());
                 var collisionResults = ray.intersectObjects([borderTop]);
                 if (collisionResults.length > 0 && collisionResults[0].distance < directionVector.length()) {
+                    
                     // if we've got a hit, we just stop the disk and move it behind the wall
                     console.log('hit');
                     disk.setLinearVelocity(new THREE.Vector3(0, 0, 0));
-                    disk.position.set(disk.position.x, disk.position.y, -50);
+
+                    // Move to pile
+                    var pile_idx = Math.floor(disk.position.x / n_piles) + n_piles / 2;
+                    var new_ypos = disk_piles[pile_idx] * 2 + 1.5; // diskPiles[idx] * diskHeight + diskInitialPosY
+                    var new_xpos = Math.floor(disk.position.x / n_piles) * 8 + 4; // floor(x/piles) + diskRadius
+
+                    disk.rotation.set(0, 0, 0);
+                    disk.position.set(new_xpos, new_ypos, -50);
+                    disk_piles[pile_idx] += 1;
                     disk.matrixAutoUpdate  = false;
                     disk.updateMatrix();
                     current_disk += 1;
+
+                    // Add another disk
                     if (current_disk < max_disks) {
                         disk = addDisk();
 
