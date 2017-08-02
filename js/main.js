@@ -3,8 +3,7 @@ function init() {
     var scale = chroma.scale(['green', 'white']);
     var frame_id;
 
-    var current_vel, current_disk;
-    var disks = [];
+    var current_vel, current_disk, max_disks=5;
 
     var stats = initStats();
 
@@ -26,25 +25,12 @@ function init() {
     webGLRenderer.setClearColor(new THREE.Color(0x000000));
     webGLRenderer.setSize(window.innerWidth, window.innerHeight);
 
-    var disk_material = Physijs.createMaterial(
-        new THREE.MeshLambertMaterial({color: 0x444444, opacity: 0.9, transparent: true}),
-        1.0, // high friction
-        .5 // medium restitution
-    );
 
-    var disk_geometry = new THREE.CylinderGeometry(4, 4, 2, 10);
-    var disk = new Physijs.CylinderMesh(
-        disk_geometry,
-        disk_material,
-        100
-    );
-    disk.position.set(0,1.5,0);
-    disk.__dirtyPosition = true;
+    var disk = addDisk();
     current_disk = 0;
 
     // add the disk to the scene
     scene.add(disk);
-    disks.push(disk);
 
     // position and point the camera to the center of the scene
     camera.position.set(50, 30, 50);
@@ -118,7 +104,6 @@ function init() {
             disk.__dirtyPosition = true;
             // add it to the scene and to the array of disks.
             scene.add(disk);
-            disks.push(disk);
             render();
 
         };
@@ -134,37 +119,43 @@ function init() {
     function render() {
         stats.update();
 
-        if (current_disk < disks.length) {
+        if (current_disk < max_disks) {
 
             // motion
             var min = -5, max = 5;
             var ran_number = Math.random() * (max - min) + min;
-            current_vel = disks[current_disk].getLinearVelocity();
-            disks[current_disk].setLinearVelocity(new THREE.Vector3(current_vel.x + ran_number, 0, -controls.velocity));
+            current_vel = disk.getLinearVelocity();
+            disk.setLinearVelocity(new THREE.Vector3(current_vel.x + ran_number, 0, -controls.velocity));
 
             // collision
-            var cdisk = disks[current_disk];
-            var originPoint = cdisk.position.clone();
-            for (var vertexIndex = 0; vertexIndex < cdisk.geometry.vertices.length; vertexIndex++) {
-                var localVertex = cdisk.geometry.vertices[vertexIndex].clone();
-                var globalVertex = localVertex.applyMatrix4(cdisk.matrix);
-                var directionVector = globalVertex.sub(cdisk.position);
+            var originPoint = disk.position.clone();
+            for (var vertexIndex = 0; vertexIndex < disk.geometry.vertices.length; vertexIndex++) {
+                var localVertex = disk.geometry.vertices[vertexIndex].clone();
+                var globalVertex = localVertex.applyMatrix4(disk.matrix);
+                var directionVector = globalVertex.sub(disk.position);
                 var ray = new THREE.Raycaster(originPoint, directionVector.clone().normalize());
                 var collisionResults = ray.intersectObjects([borderTop]);
                 if (collisionResults.length > 0 && collisionResults[0].distance < directionVector.length()) {
                     // if we've got a hit, we just stop the disk and move it behind the wall
                     console.log('hit');
-                    cdisk.setLinearVelocity(new THREE.Vector3(0, 0, 0));
-                    cdisk.position.set(cdisk.position.x, cdisk.position.y, -50);
-                    cdisk.matrixAutoUpdate  = false;
-                    cdisk.updateMatrix();
+                    disk.setLinearVelocity(new THREE.Vector3(0, 0, 0));
+                    disk.position.set(disk.position.x, disk.position.y, -50);
+                    disk.matrixAutoUpdate  = false;
+                    disk.updateMatrix();
                     current_disk += 1;
+                    if (current_disk < max_disks) {
+                        disk = addDisk();
+
+                        // add the disk to the scene
+                        scene.add(disk);
+                        console.log(current_disk);
+                    }
                 }
             }
         }
 
         // render using requestAnimationFrame
-        requestAnimationFrame(render);
+        frame_id = requestAnimationFrame(render);
         webGLRenderer.render(scene, camera);
 
         scene.simulate(undefined, 1);
@@ -188,5 +179,24 @@ function initStats() {
     return stats;
 }
 
+function addDisk() {
+
+    var disk_material = Physijs.createMaterial(
+        new THREE.MeshLambertMaterial({color: 0x444444, opacity: 0.9, transparent: true}),
+        1.0, // high friction
+        .5 // medium restitution
+    );
+
+    var disk_geometry = new THREE.CylinderGeometry(4, 4, 2, 10);
+    var disk = new Physijs.CylinderMesh(
+        disk_geometry,
+        disk_material,
+        100
+    );
+    disk.position.set(0,1.5,0);
+    disk.__dirtyPosition = true;
+
+    return disk;
+}
 
 window.onload = init;
