@@ -33,8 +33,8 @@ function init() {
     scene.add(disk);
 
     // position and point the camera to the center of the scene
-    camera.position.set(50, 30, 50);
-    camera.lookAt(new THREE.Vector3(10, 0, 10));
+    camera.position.set(0, 80, 100);
+    camera.lookAt(new THREE.Vector3(0, 0, 0));
 
     // Light
     light = new THREE.SpotLight(0xFFFFFF);
@@ -49,10 +49,12 @@ function init() {
         new THREE.MeshPhongMaterial({map: THREE.ImageUtils.loadTexture('assets/textures/wood-2.jpg')}),
         .9, .3);
 
-    var ground = new Physijs.BoxMesh(new THREE.BoxGeometry(60, 1, 60), ground_material, 0);
+    var ground = new Physijs.BoxMesh(new THREE.BoxGeometry(60, 1, 80), ground_material, 0);
+    ground.position.z = -20;
+    ground.position.y = 0;
     scene.add(ground);
 
-    var borderLeft = new Physijs.BoxMesh(new THREE.BoxGeometry(2, 3, 60), ground_material, 0);
+    /*var borderLeft = new Physijs.BoxMesh(new THREE.BoxGeometry(2, 3, 60), ground_material, 0);
     borderLeft.position.x = -31;
     borderLeft.position.y = 2;
     scene.add(borderLeft);
@@ -65,10 +67,10 @@ function init() {
     var borderBottom = new Physijs.BoxMesh(new THREE.BoxGeometry(64, 3, 2), ground_material, 0);
     borderBottom.position.z = 30;
     borderBottom.position.y = 2;
-    scene.add(borderBottom);
+    scene.add(borderBottom);*/
 
     var borderTop = new Physijs.BoxMesh(new THREE.BoxGeometry(64, 3, 2), ground_material, 0);
-    borderTop.position.z = -30;
+    borderTop.position.z = -40;
     borderTop.position.y = 2;
     scene.add(borderTop);
 
@@ -173,6 +175,28 @@ function init() {
                         // add the disk to the scene
                         scene.add(disk);
                         console.log(current_disk);
+                    } else {
+                        // We add curve
+                        var points = disk_piles.map(function(d, idx){
+                            return {x: (idx-4)*2*4+4, y: d.length, z: -50};
+                        });
+                        var lines = new THREE.Geometry();
+                        var colors = [], i = 0;
+                        points.forEach(function (e) {
+                            lines.vertices.push(new THREE.Vector3(e.x, e.y, e.z));
+                            colors[i] = new THREE.Color(0xffffff);
+                            colors[i].setHSL(1.0, 1.0, 1.0);
+                            i++;
+                        });
+                        lines.colors = colors;
+                        var material = new THREE.LineBasicMaterial({
+                            opacity: 1.0,
+                            linewidth: 8,
+                            vertexColors: THREE.VertexColors });
+                        var line = new THREE.Line(lines, material);
+                        line.position.set(0, 1.5, 0);
+                        scene.add(line);
+
                     }
                 }
             }
