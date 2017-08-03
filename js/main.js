@@ -178,7 +178,7 @@ function init() {
                     } else {
                         // We add curve
                         var points = disk_piles.map(function(d, idx){
-                            return {x: (idx-4)*2*4+4, y: d.length, z: -50};
+                            return {x: (idx-4)*2*4+4, y: d.length * 2, z: -50};
                         });
                         var lines = new THREE.Geometry();
                         var colors = [], i = 0;
@@ -196,6 +196,7 @@ function init() {
                         var line = new THREE.Line(lines, material);
                         line.position.set(0, 1.5, 0);
                         scene.add(line);
+                        console.log(line)
 
                     }
                 }
