@@ -1,6 +1,5 @@
 function init() {
 
-    var scale = chroma.scale(['green', 'white']);
     var frame_id;
 
     var current_vel, current_disk, max_disks=5;
@@ -25,57 +24,86 @@ function init() {
     webGLRenderer.setClearColor(new THREE.Color(0x000000));
     webGLRenderer.setSize(window.innerWidth, window.innerHeight);
 
-
-    var disk = addDisk();
-    current_disk = 0;
+    var disk = addDisk(),
+        disks = [disk],
+        current_disk = 0;
 
     // add the disk to the scene
     scene.add(disk);
 
     // position and point the camera to the center of the scene
-    camera.position.set(0, 80, 100);
+    camera.position.set(0, 60, 100);
     camera.lookAt(new THREE.Vector3(0, 0, 0));
 
     // Light
     light = new THREE.SpotLight(0xFFFFFF);
-    light.position.set(20, 100, 50);
+    light.position.set(20, 80, 50);
     scene.add(light);
 
     // add the output of the renderer to the html element
     document.getElementById("viewport").appendChild(webGLRenderer.domElement);
 
     // Create ground
+    var loader = new THREE.TextureLoader();
     var ground_material = Physijs.createMaterial(
-        new THREE.MeshPhongMaterial({map: THREE.ImageUtils.loadTexture('assets/textures/wood-2.jpg')}),
+        new THREE.MeshPhongMaterial({map: loader.load('assets/textures/wood-2.jpg')}),
         .9, .3);
 
     var ground = new Physijs.BoxMesh(new THREE.BoxGeometry(60, 1, 80), ground_material, 0);
     ground.position.z = -20;
-    ground.position.y = 0;
+    ground.position.y = -20;
     scene.add(ground);
-
-    /*var borderLeft = new Physijs.BoxMesh(new THREE.BoxGeometry(2, 3, 60), ground_material, 0);
-    borderLeft.position.x = -31;
-    borderLeft.position.y = 2;
-    scene.add(borderLeft);
-
-    var borderRight = new Physijs.BoxMesh(new THREE.BoxGeometry(2, 3, 60), ground_material, 0);
-    borderRight.position.x = 31;
-    borderRight.position.y = 2;
-    scene.add(borderRight);
-
-    var borderBottom = new Physijs.BoxMesh(new THREE.BoxGeometry(64, 3, 2), ground_material, 0);
-    borderBottom.position.z = 30;
-    borderBottom.position.y = 2;
-    scene.add(borderBottom);*/
-
-    var borderTop = new Physijs.BoxMesh(new THREE.BoxGeometry(64, 3, 2), ground_material, 0);
-    borderTop.position.z = -40;
-    borderTop.position.y = 2;
-    scene.add(borderTop);
 
     var n_piles = Math.round(60 / (2 * 4)); // borderTopLength / 2 * diskRadius
     for (var disk_piles = []; disk_piles.length < n_piles; disk_piles.push([]));
+    var points = disk_piles.map(function(d, idx){
+        return {x: (idx-4)*2*4+4, y: d.length, z: -50};
+    });
+    initPlot(points);
+
+
+    var handleCollision = function(object, linearVelocity, angularVelocity){
+
+        console.log('hit')
+        object.setLinearVelocity(new THREE.Vector3(0, 0, 0));
+
+        // Move to pile
+        var pile_idx = Math.floor(object.position.x / n_piles) + n_piles / 2;
+        var this_pile = disk_piles[pile_idx];
+        var new_ypos = this_pile.length * 2 + 1.5; // diskPiles[idx] * diskHeight + diskInitialPosY
+        var new_xpos = Math.floor(object.position.x / n_piles) * 8 + 4; // floor(x/piles) + diskRadius
+
+        object.rotation.set(0, 0, 0);
+        object.position.set(new_xpos, new_ypos, -60);
+        object.matrixAutoUpdate  = false;
+        object.updateMatrix();
+
+        this_pile.push(object);
+        scene.remove(object)
+        current_disk += 1;
+
+        // Add another disk
+        if (current_disk < max_disks) {
+
+            disks[current_disk] = addDisk();
+
+            // add the disk to the scene
+            scene.add(disks[current_disk]);
+        }
+
+        // We add curve
+        points = disk_piles.map(function(d, idx){
+            return {x: (idx-4)*2*4+4, y: d.length, z: -50};
+        });
+        updatePlot(points);
+
+    };
+
+    var borderTop = new Physijs.BoxMesh(new THREE.BoxGeometry(64, 3, 2), ground_material, 0);
+    borderTop.position.z = -40;
+    borderTop.position.y = -18;
+    borderTop.addEventListener( 'collision', handleCollision);
+    scene.add(borderTop);
 
     // call the render function
     var step = 0;
@@ -136,71 +164,9 @@ function init() {
             // motion
             var min = -5, max = 5;
             var ran_number = Math.random() * (max - min) + min;
-            current_vel = disk.getLinearVelocity();
-            disk.setLinearVelocity(new THREE.Vector3(current_vel.x + ran_number, 0, -controls.velocity));
+            current_vel = disks[current_disk].getLinearVelocity();
+            disks[current_disk].setLinearVelocity(new THREE.Vector3(current_vel.x + ran_number, 0, -controls.velocity));
 
-            // collision
-            var originPoint = disk.position.clone();
-            for (var vertexIndex = 0; vertexIndex < disk.geometry.vertices.length; vertexIndex++) {
-                var localVertex = disk.geometry.vertices[vertexIndex].clone();
-                var globalVertex = localVertex.applyMatrix4(disk.matrix);
-                var directionVector = globalVertex.sub(disk.position);
-                var ray = new THREE.Raycaster(originPoint, directionVector.clone().normalize());
-                var collisionResults = ray.intersectObjects([borderTop]);
-                if (collisionResults.length > 0 && collisionResults[0].distance < directionVector.length()) {
-
-                    // if we've got a hit, we just stop the disk and move it behind the wall
-                    console.log('hit');
-                    disk.setLinearVelocity(new THREE.Vector3(0, 0, 0));
-
-                    // Move to pile
-                    var pile_idx = Math.floor(disk.position.x / n_piles) + n_piles / 2;
-                    var this_pile = disk_piles[pile_idx];
-                    var new_ypos = this_pile.length * 2 + 1.5; // diskPiles[idx] * diskHeight + diskInitialPosY
-                    var new_xpos = Math.floor(disk.position.x / n_piles) * 8 + 4; // floor(x/piles) + diskRadius
-
-                    disk.rotation.set(0, 0, 0);
-                    disk.position.set(new_xpos, new_ypos, -50);
-                    disk.matrixAutoUpdate  = false;
-                    disk.updateMatrix();
-
-                    this_pile.push(disk);
-                    current_disk += 1;
-                    //console.log(disk_piles);
-
-                    // Add another disk
-                    if (current_disk < max_disks) {
-                        disk = addDisk();
-
-                        // add the disk to the scene
-                        scene.add(disk);
-                        console.log(current_disk);
-                    } else {
-                        // We add curve
-                        var points = disk_piles.map(function(d, idx){
-                            return {x: (idx-4)*2*4+4, y: d.length * 2, z: -50};
-                        });
-                        var lines = new THREE.Geometry();
-                        var colors = [], i = 0;
-                        points.forEach(function (e) {
-                            lines.vertices.push(new THREE.Vector3(e.x, e.y, e.z));
-                            colors[i] = new THREE.Color(0xffffff);
-                            colors[i].setHSL(1.0, 1.0, 1.0);
-                            i++;
-                        });
-                        lines.colors = colors;
-                        var material = new THREE.LineBasicMaterial({
-                            opacity: 1.0,
-                            linewidth: 8,
-                            vertexColors: THREE.VertexColors });
-                        var line = new THREE.Line(lines, material);
-                        line.position.set(0, 1.5, 0);
-                        scene.add(line);
-                        console.log(line)
-
-                    }
-                }
-            }
         }
 
         // render using requestAnimationFrame
@@ -242,10 +208,76 @@ function addDisk() {
         disk_material,
         100
     );
-    disk.position.set(0,1.5,0);
+    disk.position.set(0,-18.5,0);
     disk.__dirtyPosition = true;
 
     return disk;
+}
+
+var	margin = {top: 40, right: 40, bottom: 40, left: 50},
+    width = 400;
+    height = 300;
+
+var x = d3.scaleBand().range([0, width]).padding(0.1),
+    y = d3.scaleLinear().range([height, 0]);
+
+var div = d3.select("#viewport");
+
+var svg = div.append("svg")
+    .attr("id", "histogram")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+    .style("position", "absolute")
+    .style("left", window.innerWidth/2 - width/2 - 2*margin.left + margin.right)
+    .style("top", 0);
+
+var g = svg.append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+function initPlot(data){
+
+    x.domain(d3.range(data.length));
+    //y.domain([0, d3.max(data, function(d) { return d.y; })]); //max_disks
+    y.domain([0, 10]); // max_disks
+
+    g.append("g")
+        .attr("class", "axis axis--x")
+        .attr("transform", "translate(0," + height + ")")
+        .call(d3.axisBottom(x));
+    g.append("g")
+        .attr("class", "axis axis--y")
+        .attr("transform", "translate("+width/2+",0)")
+        .call(d3.axisLeft(y));
+    g.selectAll("rect")
+        .data(data)
+        .enter().append("rect")
+        .attr("class", "bar")
+        .attr("fill", "white")
+        .attr("x", function(d, i) { return x(i); })
+        .attr("y", function(d) { return y(d.y); })
+        .attr("width", x.bandwidth())
+        .attr("height", function(d) { return height - y(d.y); });
+
+}
+
+function updatePlot(data){
+
+    var selection = g.selectAll(".bar")
+        .data(data);
+
+    selection.exit().remove();
+
+    selection.attr("class", "bar")
+        .attr("y", function(d) { console.log(y(d.y)); return y(d.y); })
+        .attr("height", function(d) { return height - y(d.y); });
+
+    selection.enter().append("rect")
+        .attr("class", "bar")
+        .attr("y", function(d) { console.log(y(d.y)); return y(d.y); })
+        .attr("height", function(d) { return height - y(d.y); });
+
+
+
 }
 
 window.onload = init;
