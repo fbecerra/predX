@@ -2,8 +2,6 @@ function init() {
 
     var frame_id;
 
-    var current_vel, current_disk, max_disks=5;
-
     var stats = initStats();
 
     Physijs.scripts.worker = 'js/physijs_worker.js';
@@ -25,8 +23,10 @@ function init() {
     webGLRenderer.setSize(window.innerWidth, window.innerHeight);
 
     var disk = addDisk(),
-        disks = [disk],
-        current_disk = 0;
+        current_disk = 0,
+        current_vel,
+        disks= 5,
+        max_disks = 10;
 
     // add the disk to the scene
     scene.add(disk);
@@ -59,12 +59,14 @@ function init() {
     var points = disk_piles.map(function(d, idx){
         return {x: (idx-4)*2*4+4, y: d.length, z: -50};
     });
-    initPlot(points);
-
+    var histogram =  new Histogram(),
+        plot = new Plot(),
+        offsets = [];
+    histogram.init(points);
+    plot.init(points.length, max_disks);
 
     var handleCollision = function(object, linearVelocity, angularVelocity){
 
-        console.log('hit')
         object.setLinearVelocity(new THREE.Vector3(0, 0, 0));
 
         // Move to pile
@@ -79,23 +81,27 @@ function init() {
         object.updateMatrix();
 
         this_pile.push(object);
-        scene.remove(object)
-        current_disk += 1;
+        scene.remove(object);
 
-        // Add another disk
-        if (current_disk < max_disks) {
-
-            disks[current_disk] = addDisk();
-
-            // add the disk to the scene
-            scene.add(disks[current_disk]);
-        }
-
-        // We add curve
+        // Update histogram
         points = disk_piles.map(function(d, idx){
             return {x: (idx-4)*2*4+4, y: d.length, z: -50};
         });
-        updatePlot(points);
+        histogram.update(points);
+
+        current_disk += 1;
+
+        // Add another disk
+        if (current_disk < disks) {
+            disk = addDisk();
+            scene.add(disk);
+        } else {
+            // Fit gaussian, get offset. In the meantime offset is the maximum.
+            var offsetMax = d3.max(points, function(d){return d.y; });
+            offsets.push({pucks: disks, offset: offsetMax});
+            plot.update(offsets);
+        }
+        
 
     };
 
@@ -110,21 +116,20 @@ function init() {
 
     // setup the control gui
     var controls = new function () {
-        // we need the first child, since it's a multimaterial
+
         this.diskRestitution = 1.0;
         this.diskFriction = 0.5;
         this.velocity = 50;
+        this.numberPucks = 5;
 
         this.redraw = function () {
 
-            // Remove disks from scene
-            disk_piles.forEach(function(pile){
-                pile.forEach(function(this_disk){
-                    scene.remove(this_disk);
-                });
-            });
             // Restart piles
             for (disk_piles = []; disk_piles.length < n_piles; disk_piles.push([]));
+            points = disk_piles.map(function(d, idx){
+                return {x: (idx-4)*2*4+4, y: d.length, z: -50};
+            });
+            histogram.update(points);
 
             // Create a new one
             current_disk = 0;
@@ -140,10 +145,12 @@ function init() {
                 disk_material,
                 100
             );
-            disk.position.set(0,1.25,0);
+            disk.position.set(0,-18.5,0);
             disk.__dirtyPosition = true;
             // add it to the scene and to the array of disks.
             scene.add(disk);
+
+            disks = controls.numberPucks;
             render();
 
         };
@@ -153,19 +160,20 @@ function init() {
     gui.add(controls, 'diskRestitution', 0, 1).onChange(controls.redraw);
     gui.add(controls, 'diskFriction', 0, 1).onChange(controls.redraw);
     gui.add(controls, 'velocity', 0, 100).onChange(controls.redraw);
+    gui.add(controls, 'numberPucks', 0, 10).step(1).onChange(controls.redraw);
 
     render();
 
     function render() {
         stats.update();
 
-        if (current_disk < max_disks) {
+        if (current_disk < disks) {
 
             // motion
             var min = -5, max = 5;
             var ran_number = Math.random() * (max - min) + min;
-            current_vel = disks[current_disk].getLinearVelocity();
-            disks[current_disk].setLinearVelocity(new THREE.Vector3(current_vel.x + ran_number, 0, -controls.velocity));
+            current_vel = disk.getLinearVelocity();
+            disk.setLinearVelocity(new THREE.Vector3(current_vel.x + ran_number, 0, -controls.velocity));
 
         }
 
@@ -214,70 +222,136 @@ function addDisk() {
     return disk;
 }
 
-var	margin = {top: 40, right: 40, bottom: 40, left: 50},
-    width = 400;
-    height = 300;
+function Histogram(){
 
-var x = d3.scaleBand().range([0, width]).padding(0.1),
-    y = d3.scaleLinear().range([height, 0]);
+    this.margin = {top: 40, right: 40, bottom: 40, left: 50};
+    this.width = 400;
+    this.height = 300;
 
-var div = d3.select("#viewport");
+    this.div = d3.select("#viewport");
 
-var svg = div.append("svg")
-    .attr("id", "histogram")
-    .attr("width", width + margin.left + margin.right)
-    .attr("height", height + margin.top + margin.bottom)
-    .style("position", "absolute")
-    .style("left", window.innerWidth/2 - width/2 - 2*margin.left + margin.right)
-    .style("top", 0);
+    this.svg = this.div.append("svg")
+        .attr("id", "histogram")
+        .attr("width", this.width + this.margin.left + this.margin.right)
+        .attr("height", this.height + this.margin.top + this.margin.bottom)
+        .style("position", "absolute")
+        .style("left", window.innerWidth/2 - this.width/2 - 2*this.margin.left + this.margin.right)
+        .style("top", 0);
 
-var g = svg.append("g")
-    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+    this.g = this.svg.append("g")
+        .attr("transform", "translate(" + this.margin.left + "," + this.margin.top + ")");
 
-function initPlot(data){
+    this.x = d3.scaleBand().range([0, this.width]).padding(0.1);
+    this.y = d3.scaleLinear().range([this.height, 0]);
 
-    x.domain(d3.range(data.length));
-    //y.domain([0, d3.max(data, function(d) { return d.y; })]); //max_disks
-    y.domain([0, 10]); // max_disks
+    this.init = function(data){
 
-    g.append("g")
-        .attr("class", "axis axis--x")
-        .attr("transform", "translate(0," + height + ")")
-        .call(d3.axisBottom(x));
-    g.append("g")
-        .attr("class", "axis axis--y")
-        .attr("transform", "translate("+width/2+",0)")
-        .call(d3.axisLeft(y));
-    g.selectAll("rect")
-        .data(data)
-        .enter().append("rect")
-        .attr("class", "bar")
-        .attr("fill", "white")
-        .attr("x", function(d, i) { return x(i); })
-        .attr("y", function(d) { return y(d.y); })
-        .attr("width", x.bandwidth())
-        .attr("height", function(d) { return height - y(d.y); });
+        this.x.domain(d3.range(data.length));
+        this.y.domain([0, 10]); // disks
 
+        var that = this;
+
+        this.g.append("g")
+            .attr("class", "axis axis--x")
+            .attr("transform", "translate(0," + this.height + ")")
+            .call(d3.axisBottom(this.x));
+        this.g.append("g")
+            .attr("class", "axis axis--y")
+            .attr("transform", "translate("+this.width/2+",0)")
+            .call(d3.axisLeft(this.y));
+        this.g.selectAll("rect")
+            .data(data)
+            .enter().append("rect")
+            .attr("class", "bar")
+            .attr("fill", "white")
+            .attr("x", function(d, i) { return that.x(i); })
+            .attr("y", function(d) { return that.y(d.y); })
+            .attr("width", this.x.bandwidth())
+            .attr("height", function(d) { return that.height - that.y(d.y); });
+
+    };
+
+    this.update = function(data){
+
+        var that = this;
+
+        this.selection = this.g.selectAll(".bar")
+            .data(data);
+
+        this.selection.exit().remove();
+
+        this.selection.attr("class", "bar")
+            .attr("y", function(d) { return that.y(d.y); })
+            .attr("height", function(d) { return that.height - that.y(d.y); });
+
+        this.selection.enter().append("rect")
+            .attr("class", "bar")
+            .attr("y", function(d) { return that.y(d.y); })
+            .attr("height", function(d) { return that.height - thaty(d.y); });
+
+    };
 }
 
-function updatePlot(data){
 
-    var selection = g.selectAll(".bar")
-        .data(data);
+function Plot(){
 
-    selection.exit().remove();
+    this.margin = {top: 40, right: 40, bottom: 40, left: 50};
+    this.width = 400;
+    this.height = 300;
 
-    selection.attr("class", "bar")
-        .attr("y", function(d) { console.log(y(d.y)); return y(d.y); })
-        .attr("height", function(d) { return height - y(d.y); });
+    this.div = d3.select("#viewport");
 
-    selection.enter().append("rect")
-        .attr("class", "bar")
-        .attr("y", function(d) { console.log(y(d.y)); return y(d.y); })
-        .attr("height", function(d) { return height - y(d.y); });
+    this.svg = this.div.append("svg")
+        .attr("id", "plot")
+        .attr("width", this.width + this.margin.left + this.margin.right)
+        .attr("height", this.height + this.margin.top + this.margin.bottom)
+        .style("position", "absolute")
+        .style("left", window.innerWidth*2/3)
+        .style("top",  window.innerHeight/2 - this.height/2 - 2*this.margin.top + this.margin.bottom);
 
+    this.g = this.svg.append("g")
+        .attr("transform", "translate(" + this.margin.left + "," + this.margin.top + ")");
 
+    this.x = d3.scaleLinear().range([0, this.width]);
+    this.y = d3.scaleLinear().range([this.height, 0]);
+    this.line = d3.line();
 
+    this.init = function(points, max_disks){
+
+        this.x.domain([0, max_disks]);
+        this.y.domain([0, max_disks]); // disks
+        
+        this.g.append("g")
+            .attr("class", "axis axis--x")
+            .attr("transform", "translate(0," + this.height + ")")
+            .call(d3.axisBottom(this.x));
+        this.g.append("g")
+            .attr("class", "axis axis--y")
+            .attr("transform", "translate(0,0)")
+            .call(d3.axisLeft(this.y));
+        this.g.append("g")
+            .datum([]).append("path")
+            .attr("class", "line")
+            .attr("fill", "none")
+            .attr("stroke", "white")
+            .attr("stroke-linejoin", "round")
+            .attr("stroke-linecap", "round")
+            .attr("stroke-width", 1.5);
+
+    };
+
+    this.update = function(data){
+
+        var that = this;
+
+        this.line.x(function(d) { return that.x(d.pucks) })
+            .y(function(d){ return that.y(d.offset) });
+
+        this.selection = this.g.selectAll(".line")
+            .datum(data)
+            .attr("d", this.line);
+
+    };
 }
 
 window.onload = init;
