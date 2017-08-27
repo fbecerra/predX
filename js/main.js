@@ -63,7 +63,7 @@ function init() {
         plot = new Plot(),
         offsets = [];
     histogram.init(points);
-    plot.init(points.length, max_disks);
+    plot.init(); //points.length, max_disks);
 
     var handleCollision = function(object, linearVelocity, angularVelocity){
 
@@ -301,8 +301,15 @@ function Histogram(){
 function Plot(){
 
     this.margin = {top: 40, right: 40, bottom: 40, left: 50};
-    this.width = 400;
-    this.height = 300;
+    this.number_pucks = [1,10,100,1000];
+    this.number_games = [1,10,100,1000];
+    this.n = this.number_pucks.length
+    this.cell_size = 100;
+    this.width = this.cell_size * (this.n + 1) - this.margin.left - this.margin.right;
+    this.height = this.cell_size * (this.n + 1) - this.margin.top - this.margin.bottom;
+
+
+    this.cross_data = cross(this.number_pucks, this.number_games);
 
     this.div = d3.select("#viewport");
 
@@ -317,31 +324,58 @@ function Plot(){
     this.g = this.svg.append("g")
         .attr("transform", "translate(" + this.margin.left + "," + this.margin.top + ")");
 
-    this.x = d3.scaleLinear().range([0, this.width]);
-    this.y = d3.scaleLinear().range([this.height, 0]);
-    this.line = d3.line();
+    this.x = d3.scaleLinear().range([0, this.cell_size])
+        .domain([0, this.number_pucks]);
+    this.y = d3.scaleLinear().range([this.cell_size, 0])
+        .domain([0, this.number_pucks]); // disks
+    //this.line = d3.line();
 
-    this.init = function(points, max_disks){
+    this.init = function(){ //points, max_disks){
 
-        this.x.domain([0, max_disks]);
-        this.y.domain([0, max_disks]); // disks
-        
-        this.g.append("g")
-            .attr("class", "axis axis--x")
-            .attr("transform", "translate(0," + this.height + ")")
-            .call(d3.axisBottom(this.x));
-        this.g.append("g")
-            .attr("class", "axis axis--y")
-            .attr("transform", "translate(0,0)")
-            .call(d3.axisLeft(this.y));
-        this.g.append("g")
-            .datum([]).append("path")
-            .attr("class", "line")
-            .attr("fill", "none")
-            .attr("stroke", "666666")
-            .attr("stroke-linejoin", "round")
-            .attr("stroke-linecap", "round")
-            .attr("stroke-width", 1.5);
+        var that = this;
+
+        this.x_axis = this.svg.selectAll(".x.axis")
+            .data(this.number_pucks).enter().append("g")
+            .attr("class", "x axis");
+        this.x_axis.attr("transform", function(d, i){
+                return "translate(" + ((that.n - i - 1) * that.cell_size + that.margin.left) + "," +
+                    (that.margin.top + that.n * that.cell_size) + ")";
+            })
+            .each(function(d, i){d3.select(this).call(d3.axisBottom(that.x).ticks(8))});
+
+        this.y_axis = this.svg.selectAll(".y.axis")
+            .data(this.number_games).enter().append("g")
+            .attr("class", "y axis");
+        this.y_axis.attr("transform", function(d, i){
+                return "translate(" + that.margin.left + "," + (i * that.cell_size + that.margin.top) + ")";
+            })
+            .each(function(d, i){d3.select(this).call(d3.axisLeft(that.y))});
+
+        this.cross_data.forEach(function(d) {
+
+            var cell = that.g.append("g")
+                .datum(d)
+                .attr("class", "cell")
+                .attr("transform", function(d) {
+                    return "translate(" + (that.n - d.i - 1) * that.cell_size + "," + d.j * that.cell_size + ")";
+                });
+
+            cell.append("rect")
+                .attr("class", "frame")
+                .attr("x", 0)
+                .attr("y", 0)
+                .attr("width", that.cell_size)
+                .attr("height", that.cell_size)
+                .on("click", function(d){ console.log(d) });
+
+            cell.append("path")
+                .attr("class", "line")
+                .attr("fill", "none")
+                .attr("stroke", "666666")
+                .attr("stroke-linejoin", "round")
+                .attr("stroke-linecap", "round")
+                .attr("stroke-width", 1.5);
+        });
 
     };
 
@@ -357,6 +391,12 @@ function Plot(){
             .attr("d", this.line);
 
     };
+
+    function cross(a, b) {
+        var c = [], n = a.length, m = b.length, i, j;
+        for (i = -1; ++i < n;) for (j = -1; ++j < m;) c.push({x: a[i], i: i, y: b[j], j: j});
+        return c;
+    }
 }
 
 window.onload = init;
