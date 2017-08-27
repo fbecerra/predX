@@ -219,7 +219,7 @@ function addDisk() {
         disk_material,
         100
     );
-    disk.position.set(0,-18.5,15);
+    disk.position.set(0,-18.5,0);
     disk.__dirtyPosition = true;
 
     return disk;
@@ -266,7 +266,7 @@ function Histogram(){
             .data(data)
             .enter().append("rect")
             .attr("class", "bar")
-            .attr("fill", "white")
+            .attr("fill", "#222222")
             .attr("x", function(d, i) { return that.x(i); })
             .attr("y", function(d) { return that.y(d.y); })
             .attr("width", this.x.bandwidth())
@@ -284,13 +284,15 @@ function Histogram(){
         this.selection.exit().remove();
 
         this.selection.attr("class", "bar")
+            .transition().duration(100)
             .attr("y", function(d) { return that.y(d.y); })
             .attr("height", function(d) { return that.height - that.y(d.y); });
 
         this.selection.enter().append("rect")
             .attr("class", "bar")
+            .transition().duration(100)
             .attr("y", function(d) { return that.y(d.y); })
-            .attr("height", function(d) { return that.height - thaty(d.y); });
+            .attr("height", function(d) { return that.height - that(d.y); });
 
     };
 }
@@ -336,7 +338,7 @@ function Plot(){
             .datum([]).append("path")
             .attr("class", "line")
             .attr("fill", "none")
-            .attr("stroke", "white")
+            .attr("stroke", "666666")
             .attr("stroke-linejoin", "round")
             .attr("stroke-linecap", "round")
             .attr("stroke-width", 1.5);
