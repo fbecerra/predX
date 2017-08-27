@@ -19,7 +19,7 @@ function init() {
 
     // create a render and set the size
     var webGLRenderer = new THREE.WebGLRenderer({antialias: true});
-    webGLRenderer.setClearColor(new THREE.Color(0x000000));
+    webGLRenderer.setClearColor(new THREE.Color("#fff"));
     webGLRenderer.setSize(window.innerWidth, window.innerHeight);
 
     var disk = addDisk(),
@@ -36,7 +36,7 @@ function init() {
     camera.lookAt(new THREE.Vector3(0, 0, 0));
 
     // Light
-    light = new THREE.SpotLight(0xFFFFFF);
+    light = new THREE.PointLight(0xFFFFFF);
     light.position.set(20, 80, 50);
     scene.add(light);
 
@@ -46,7 +46,7 @@ function init() {
     // Create ground
     var loader = new THREE.TextureLoader();
     var ground_material = Physijs.createMaterial(
-        new THREE.MeshPhongMaterial({map: loader.load('assets/textures/wood-2.jpg')}),
+        new THREE.MeshPhongMaterial({map: loader.load('assets/textures/wood-3.jpg')}),
         .9, .3);
 
     var ground = new Physijs.BoxMesh(new THREE.BoxGeometry(60, 1, 80), ground_material, 0);
@@ -105,8 +105,11 @@ function init() {
 
     };
 
-    var borderTop = new Physijs.BoxMesh(new THREE.BoxGeometry(64, 3, 2), ground_material, 0);
-    borderTop.position.z = -40;
+    var border_material = Physijs.createMaterial(
+        new THREE.MeshPhongMaterial({map: loader.load('assets/textures/wood-3.jpg'), opacity: 0.9}),
+        .0, .3);
+    var borderTop = new Physijs.BoxMesh(new THREE.BoxGeometry(64, 60, 2), border_material, 0);
+    borderTop.position.z = -60;
     borderTop.position.y = -18;
     borderTop.addEventListener( 'collision', handleCollision);
     scene.add(borderTop);
@@ -133,19 +136,19 @@ function init() {
 
             // Create a new one
             current_disk = 0;
-            disk_material = Physijs.createMaterial(
+            var disk_material = Physijs.createMaterial(
                 new THREE.MeshLambertMaterial({color: 0x444444, opacity: 0.9, transparent: true}),
                 controls.diskRestitution, // high friction
                 controls.diskFriction // medium restitution
             );
 
-            disk_geometry = new THREE.CylinderGeometry(4, 4, 2, 10);
+            var disk_geometry = new THREE.CylinderGeometry(4, 4, 2, 100);
             disk = new Physijs.CylinderMesh(
                 disk_geometry,
                 disk_material,
                 100
             );
-            disk.position.set(0,-18.5,0);
+            disk.position.set(0,-18.5,15);
             disk.__dirtyPosition = true;
             // add it to the scene and to the array of disks.
             scene.add(disk);
@@ -205,18 +208,18 @@ function initStats() {
 function addDisk() {
 
     var disk_material = Physijs.createMaterial(
-        new THREE.MeshLambertMaterial({color: 0x444444, opacity: 0.9, transparent: true}),
+        new THREE.MeshLambertMaterial({color: "#666666", opacity: 1.0, transparent: true}),
         1.0, // high friction
         .5 // medium restitution
     );
 
-    var disk_geometry = new THREE.CylinderGeometry(4, 4, 2, 10);
+    var disk_geometry = new THREE.CylinderGeometry(4, 4, 2, 100);
     var disk = new Physijs.CylinderMesh(
         disk_geometry,
         disk_material,
         100
     );
-    disk.position.set(0,-18.5,0);
+    disk.position.set(0,-18.5,15);
     disk.__dirtyPosition = true;
 
     return disk;
@@ -263,7 +266,7 @@ function Histogram(){
             .data(data)
             .enter().append("rect")
             .attr("class", "bar")
-            .attr("fill", "white")
+            .attr("fill", "#222222")
             .attr("x", function(d, i) { return that.x(i); })
             .attr("y", function(d) { return that.y(d.y); })
             .attr("width", this.x.bandwidth())
@@ -281,13 +284,15 @@ function Histogram(){
         this.selection.exit().remove();
 
         this.selection.attr("class", "bar")
+            .transition().duration(100)
             .attr("y", function(d) { return that.y(d.y); })
             .attr("height", function(d) { return that.height - that.y(d.y); });
 
         this.selection.enter().append("rect")
+            .transition().duration(100)
             .attr("class", "bar")
             .attr("y", function(d) { return that.y(d.y); })
-            .attr("height", function(d) { return that.height - thaty(d.y); });
+            .attr("height", function(d) { return that.height - that(d.y); });
 
     };
 }
@@ -333,7 +338,7 @@ function Plot(){
             .datum([]).append("path")
             .attr("class", "line")
             .attr("fill", "none")
-            .attr("stroke", "white")
+            .attr("stroke", "#666666")
             .attr("stroke-linejoin", "round")
             .attr("stroke-linecap", "round")
             .attr("stroke-width", 1.5);
