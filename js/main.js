@@ -4,8 +4,6 @@ function init() {
     var throw_disk = false;
     var i, j, disks, games;
 
-    var stats = initStats();
-
     Physijs.scripts.worker = 'js/physijs_worker.js';
     Physijs.scripts.ammo = 'ammo.js';
 
@@ -27,7 +25,8 @@ function init() {
     var disk = addDisk(),
         current_disk = 0,
         current_game = 0,
-        current_vel;
+        current_vel,
+        disk_velocity = 50;
 
     // add the disk to the scene
     scene.add(disk);
@@ -171,51 +170,6 @@ function init() {
     // call the render function
     var step = 0;
 
-    // setup the control gui
-    var controls = new function () {
-
-        this.diskRestitution = 1.0;
-        this.diskFriction = 0.5;
-        this.velocity = 50;
-
-        this.redraw = function () {
-
-            // Restart piles
-            for (disk_piles = []; disk_piles.length < n_piles; disk_piles.push([]));
-            points = disk_piles.map(function (d, idx) {
-                return {x: (idx - 4) * 2 * 4 + 4, y: d.length, z: -50};
-            });
-            histogram.update(points);
-
-            // Create a new one
-            current_disk = 0;
-            var disk_material = Physijs.createMaterial(
-                new THREE.MeshLambertMaterial({color: 0x444444, opacity: 0.9, transparent: true}),
-                controls.diskRestitution, // high friction
-                controls.diskFriction // medium restitution
-            );
-
-            var disk_geometry = new THREE.CylinderGeometry(4, 4, 2, 100);
-            disk = new Physijs.CylinderMesh(
-                disk_geometry,
-                disk_material,
-                100
-            );
-            disk.position.set(0, -18.5, 0);
-            disk.__dirtyPosition = true;
-            // add it to the scene and to the array of disks.
-            scene.add(disk);
-
-            render();
-
-        };
-    };
-
-    var gui = new dat.GUI();
-    gui.add(controls, 'diskRestitution', 0, 1).onChange(controls.redraw);
-    gui.add(controls, 'diskFriction', 0, 1).onChange(controls.redraw);
-    gui.add(controls, 'velocity', 0, 100).onChange(controls.redraw);
-
     frame_id = requestAnimationFrame(render);
     webGLRenderer.render(scene, camera);
     
@@ -228,7 +182,7 @@ function init() {
                 var min = -5, max = 5;
                 var ran_number = Math.random() * (max - min) + min;
                 current_vel = disk.getLinearVelocity();
-                disk.setLinearVelocity(new THREE.Vector3(current_vel.x + ran_number, 0, -controls.velocity));
+                disk.setLinearVelocity(new THREE.Vector3(current_vel.x + ran_number, 0, -disk_velocity));
 
                 frame_id = requestAnimationFrame(render);
                 webGLRenderer.render(scene, camera);
@@ -240,13 +194,12 @@ function init() {
 
 
     function render() {
-        stats.update();
 
         if (throw_disk){
             var min = -5, max = 5;
             var ran_number = Math.random() * (max - min) + min;
             current_vel = disk.getLinearVelocity();
-            disk.setLinearVelocity(new THREE.Vector3(current_vel.x + ran_number, 0, -controls.velocity));
+            disk.setLinearVelocity(new THREE.Vector3(current_vel.x + ran_number, 0, -disk_velocity));
         }
 
         // render using requestAnimationFrame
@@ -257,20 +210,6 @@ function init() {
 
     }
 
-    function initStats() {
-
-        var stats = new Stats();
-        stats.setMode(0); // 0: fps, 1: ms
-
-        // Align top-left
-        stats.domElement.style.position = 'absolute';
-        stats.domElement.style.left = '0px';
-        stats.domElement.style.top = '0px';
-
-        document.getElementById("viewport").appendChild(stats.domElement);
-
-        return stats;
-    }
 
     function addDisk() {
 
