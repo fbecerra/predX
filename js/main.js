@@ -145,6 +145,12 @@ function init() {
             line.rotation.set(0, 0, Math.PI/2);
             line.position.set(d.x, -19, -53);
             scene.add(line);
+
+            var dot_geometry = new THREE.CircleBufferGeometry( 1, 32 );
+            var dot = new THREE.Mesh( dot_geometry, line_material );
+            dot.position.set(0,-18.5, 0);
+            dot.rotation.set(Math.PI/2,0,0);
+            scene.add(dot);
         }
 
     });
