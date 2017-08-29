@@ -17,6 +17,6 @@ body {
 
 .frame {
     fill: white;
-    /*opacity: 0;*/
+    /*opacity: 1.0;*/
     stroke: #aaa;
 }
