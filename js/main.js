@@ -55,17 +55,6 @@ function init() {
     ground.position.y = -20;
     scene.add(ground);
 
-    var n_piles = Math.round(60 / (2 * 4)); // borderTopLength / 2 * diskRadius
-    for (var disk_piles = []; disk_piles.length < n_piles; disk_piles.push([]));
-    var points = disk_piles.map(function (d, idx) {
-        return {x: (idx - 4) * 2 * 4 + 4, y: d.length, z: -50};
-    });
-    var histogram = new Histogram(),
-        plot = new Plot(),
-        offsets = [];
-    histogram.init(points);
-    plot.init(); //points.length, max_disks);
-
     var handleCollision = function (object, linearVelocity, angularVelocity) {
 
         object.setLinearVelocity(new THREE.Vector3(0, 0, 0));
@@ -87,7 +76,7 @@ function init() {
         // Add another disk
         disk = addDisk();
         scene.add(disk);
-        
+
         if (current_disk >= disks) {
             // Fit gaussian, get offset. In the meantime offset is the maximum.
             var offsetMax = d3.max(points, function (d) {
@@ -105,7 +94,6 @@ function init() {
                     return {x: (idx - 4) * 2 * 4 + 4, y: d.length, z: -50};
                 });
                 histogram.update(points);
-                //reset line
             } else {
                 throw_disk = false;
                 // fit gaussian
@@ -115,19 +103,64 @@ function init() {
         }
 
 
-
-
-
     };
 
-    var border_material = Physijs.createMaterial(
+    var wall_material = Physijs.createMaterial(
         new THREE.MeshPhongMaterial({map: loader.load('assets/textures/wood-3.jpg'), opacity: 0.9}),
         .0, .3);
-    var borderTop = new Physijs.BoxMesh(new THREE.BoxGeometry(64, 60, 2), border_material, 0);
-    borderTop.position.z = -60;
-    borderTop.position.y = -18;
-    borderTop.addEventListener('collision', handleCollision);
-    scene.add(borderTop);
+    var wallTop = new Physijs.BoxMesh(new THREE.BoxGeometry(60, 60, 2), wall_material, 0);
+    wallTop.position.z = -60;
+    wallTop.position.y = -10;
+    wallTop.rotation.set(-Math.PI / 6, 0, 0);
+    wallTop.addEventListener('collision', handleCollision);
+    scene.add(wallTop);
+
+    var lines = d3.range(-20, 30, 10).map(function(d){
+        var color = (d==0) ? 'red' : 'blue';
+        return { x: d, color: color}
+    });
+
+    lines.forEach(function(d){
+        var line_geometry = new THREE.PlaneGeometry( 1, 80, 2 );
+        var line_material = new THREE.MeshBasicMaterial( {
+            color: d.color,
+            side: THREE.DoubleSide,
+            transparent: true,
+            opacity: 0.2
+        });
+        var line = new THREE.Mesh(line_geometry, line_material);
+        line.rotation.set(Math.PI/2, 0, 0);
+        line.position.set(d.x, -19.5, -20);
+        scene.add(line);
+
+        line_geometry = new THREE.PlaneGeometry( 1, 41, 2 );
+        line = new THREE.Mesh(line_geometry, line_material);
+        line.rotation.set(-Math.PI / 6, 0, 0);
+        line.position.set(d.x, -1, -62.5);
+        scene.add(line);
+
+        if (d.color == 'red'){
+            line_geometry = new THREE.PlaneGeometry( 1, 60, 2 );
+            line = new THREE.Mesh(line_geometry, line_material);
+            line.rotation.set(0, 0, Math.PI/2);
+            line.position.set(d.x, -19, -53);
+            scene.add(line);
+        }
+
+    });
+
+
+
+    var n_piles = Math.round(60 / (2 * 4)); // wallTopLength / 2 * diskRadius
+    for (var disk_piles = []; disk_piles.length < n_piles; disk_piles.push([]));
+    var points = disk_piles.map(function (d, idx) {
+        return {x: (idx - 4) * 2 * 4 + 4, y: d.length, z: -50};
+    });
+    var histogram = new Histogram(),
+        plot = new Plot(),
+        offsets = [];
+    histogram.init(points);
+    plot.init(); //points.length, max_disks);
 
     // call the render function
     var step = 0;
@@ -138,7 +171,6 @@ function init() {
         this.diskRestitution = 1.0;
         this.diskFriction = 0.5;
         this.velocity = 50;
-        this.numberPucks = 5;
 
         this.redraw = function () {
 
@@ -168,7 +200,6 @@ function init() {
             // add it to the scene and to the array of disks.
             scene.add(disk);
 
-            disks = controls.numberPucks;
             render();
 
         };
@@ -178,13 +209,10 @@ function init() {
     gui.add(controls, 'diskRestitution', 0, 1).onChange(controls.redraw);
     gui.add(controls, 'diskFriction', 0, 1).onChange(controls.redraw);
     gui.add(controls, 'velocity', 0, 100).onChange(controls.redraw);
-    gui.add(controls, 'numberPucks', 0, 10).step(1).onChange(controls.redraw);
 
     frame_id = requestAnimationFrame(render);
     webGLRenderer.render(scene, camera);
-
-    //render();
-    //throwDisks(1,1);
+    
 
     function throwDisks(n_disks, n_games) {
 
@@ -272,7 +300,7 @@ function init() {
             .attr("height", this.height + this.margin.top + this.margin.bottom)
             .style("position", "absolute")
             .style("left", window.innerWidth / 2 - this.width / 2 - 2 * this.margin.left + this.margin.right)
-            .style("top", 0);
+            .style("top", -20);
 
         this.g = this.svg.append("g")
             .attr("transform", "translate(" + this.margin.left + "," + this.margin.top + ")");
