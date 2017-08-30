@@ -115,7 +115,7 @@ function init() {
     scene.add(wallTop);
 
     var lines = d3.range(-20, 30, 10).map(function(d){
-        var color = (d==0) ? 'red' : 'blue';
+        var color = (d==0) ? 'red' : "#464EAA";
         return { x: d, color: color}
     });
 
@@ -125,7 +125,7 @@ function init() {
             color: d.color,
             side: THREE.DoubleSide,
             transparent: true,
-            opacity: 0.2
+            opacity: 0.5
         });
         var line = new THREE.Mesh(line_geometry, line_material);
         line.rotation.set(Math.PI/2, 0, 0);
@@ -322,8 +322,8 @@ function init() {
 
         this.margin = {top: 40, right: 40, bottom: 40, left: 50};
         this.cell_size = 100;
-        this.number_pucks = [1, 2, 3, 5];
-        this.number_games = [1, 2, 3, 5];
+        this.number_pucks = [10, 5, 2, 1];
+        this.number_games = [10, 5, 2, 1];
         this.n = this.number_pucks.length;
         this.width = this.cell_size * (this.n + 1) - this.margin.left - this.margin.right;
         this.height = this.cell_size * (this.n + 1) - this.margin.top - this.margin.bottom;
@@ -338,7 +338,7 @@ function init() {
             .attr("height", this.height + this.margin.top + this.margin.bottom)
             .style("position", "absolute")
             .style("left", window.innerWidth * 2 / 3)
-            .style("top", window.innerHeight / 2 - this.height / 2 - 2 * this.margin.top + this.margin.bottom);
+            .style("top", window.innerHeight / 3 - this.height / 2 - 2 * this.margin.top + this.margin.bottom);
 
         this.g = this.svg.append("g")
             .attr("transform", "translate(" + this.margin.left + "," + this.margin.top + ")");
@@ -353,7 +353,7 @@ function init() {
 
             var that = this;
 
-            this.x_axis = this.svg.selectAll(".x.axis")
+            /*this.x_axis = this.svg.selectAll(".x.axis")
                 .data(this.number_pucks).enter().append("g")
                 .attr("class", "x axis");
             this.x_axis.attr("transform", function (d, i) {
@@ -372,6 +372,32 @@ function init() {
                 })
                 .each(function (d, i) {
                     d3.select(this).call(d3.axisLeft(that.y))
+                });*/
+
+            this.svg.selectAll(".x.labels")
+                .data(this.number_pucks).enter().append("text")
+                .attr("class", "x labels")
+                .attr("x", function(d, i){
+                    return (that.n - i - 1/2) * that.cell_size + that.margin.left ;
+                })
+                .attr("y", function(d, i){
+                    return that.margin.top + that.n * that.cell_size + 24;
+                })
+                .text(function(d){
+                    return ''+d;
+                });
+
+            this.svg.selectAll(".y.labels")
+                .data(this.number_pucks).enter().append("text")
+                .attr("class", "y labels")
+                .attr("x", function(d, i){
+                    return that.margin.left - 24;
+                })
+                .attr("y", function(d, i){
+                    return (i + 1/2) * that.cell_size + that.margin.top;
+                })
+                .text(function(d){
+                    return ''+d;
                 });
 
             this.cross_data.forEach(function (d) {
@@ -429,7 +455,7 @@ function init() {
                 .attr("class", "line")
                 .attr("fill", "none")
                 .attr("stroke", "black")
-                .attr("opacity", 0.1)
+                .attr("opacity", 0.5/that.number_games[j])
                 .attr("stroke-linejoin", "round")
                 .attr("stroke-linecap", "round")
                 .attr("stroke-width", 1.5)
