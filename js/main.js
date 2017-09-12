@@ -22,7 +22,10 @@ function init() {
     webGLRenderer.setClearColor(new THREE.Color("#fff"));
     webGLRenderer.setSize(window.innerWidth, window.innerHeight);
 
-    var disk = addDisk(),
+    var disk_radius = 4,
+        disk_height = 2,
+        disk_position_y = -18.5,
+        disk = addDisk(),
         current_disk = 0,
         current_game = 0,
         current_vel,
@@ -49,9 +52,14 @@ function init() {
         new THREE.MeshPhongMaterial({map: loader.load('assets/textures/wood-3.jpg')}),
         .9, .3);
 
-    var ground = new Physijs.BoxMesh(new THREE.BoxGeometry(60, 1, 80), ground_material, 0);
-    ground.position.z = -20;
-    ground.position.y = -20;
+    var ground_width = 60,
+        ground_height = 1,
+        ground_depth = 80,
+        ground_position_x = -20,
+        ground_position_y = -20;
+    var ground = new Physijs.BoxMesh(new THREE.BoxGeometry(ground_width, ground_height, ground_depth), ground_material, 0);
+    ground.position.z = ground_position_x;
+    ground.position.y = ground_position_y;
     scene.add(ground);
 
     var handleCollision = function (object, linearVelocity, angularVelocity) {
@@ -67,7 +75,7 @@ function init() {
 
         // Update histogram
         points = disk_piles.map(function (d, idx) {
-            return {x: (idx - 4) * 2 * 4 + 4, y: d.length, z: -50};
+            return {x: (idx - disk_radius) * 2 * disk_radius + disk_radius, y: d.length, z: -50};
         });
         histogram.update(points);
 
@@ -90,7 +98,7 @@ function init() {
                 current_disk = 0;
                 for (disk_piles = []; disk_piles.length < n_piles; disk_piles.push([]));
                 points = disk_piles.map(function (d, idx) {
-                    return {x: (idx - 4) * 2 * 4 + 4, y: d.length, z: -50};
+                    return {x: (idx - disk_radius) * 2 * disk_radius + disk_radius, y: d.length, z: -50};
                 });
                 histogram.update(points);
             } else {
@@ -107,12 +115,15 @@ function init() {
     var wall_material = Physijs.createMaterial(
         new THREE.MeshPhongMaterial({map: loader.load('assets/textures/wood-3.jpg'), opacity: 0.9}),
         .0, .3);
-    var wallTop = new Physijs.BoxMesh(new THREE.BoxGeometry(60, 60, 2), wall_material, 0);
-    wallTop.position.z = -60;
-    wallTop.position.y = -10;
-    wallTop.rotation.set(-Math.PI / 6, 0, 0);
-    wallTop.addEventListener('collision', handleCollision);
-    scene.add(wallTop);
+    var wall_width = 60,
+        wall_height = 60,
+        wall_depth = 2;
+    var wall = new Physijs.BoxMesh(new THREE.BoxGeometry(wall_width, wall_height, wall_depth), wall_material, 0);
+    wall.position.z = -60;
+    wall.position.y = -10;
+    wall.rotation.set(-Math.PI / 6, 0, 0);
+    wall.addEventListener('collision', handleCollision);
+    scene.add(wall);
 
     var lines = d3.range(-20, 30, 10).map(function(d){
         var color = (d==0) ? 'red' : "#464EAA";
@@ -156,10 +167,10 @@ function init() {
 
 
 
-    var n_piles = Math.round(60 / (2 * 4)); // wallTopLength / 2 * diskRadius
+    var n_piles = Math.round(wall_width / (2 * disk_radius));
     for (var disk_piles = []; disk_piles.length < n_piles; disk_piles.push([]));
     var points = disk_piles.map(function (d, idx) {
-        return {x: (idx - 4) * 2 * 4 + 4, y: d.length, z: -50};
+        return {x: (idx - disk_radius) * 2 * disk_radius + disk_radius, y: d.length, z: -50};
     });
     var histogram = new Histogram(),
         plot = new Plot(),
@@ -175,7 +186,6 @@ function init() {
     
 
     function throwDisks(n_disks, n_games) {
-
         for (var games = 0; games < n_games; games++) {
             for (var disks = 0; disks < n_disks; disks++) {
 
@@ -219,13 +229,13 @@ function init() {
             .5 // medium restitution
         );
 
-        var disk_geometry = new THREE.CylinderGeometry(4, 4, 2, 100);
+        var disk_geometry = new THREE.CylinderGeometry(disk_radius, disk_radius, disk_height, 100);
         var disk = new Physijs.CylinderMesh(
             disk_geometry,
             disk_material,
             100
         );
-        disk.position.set(0, -18.5, 0);
+        disk.position.set(0, disk_position_y, 0);
         disk.__dirtyPosition = true;
 
         return disk;
@@ -320,7 +330,7 @@ function init() {
 
     function Plot() {
 
-        this.margin = {top: 40, right: 40, bottom: 40, left: 50};
+        this.margin = {top: 10, right: 10, bottom: 40, left: 50};
         this.cell_size = 100;
         this.number_pucks = [10, 5, 2, 1];
         this.number_games = [10, 5, 2, 1];
@@ -344,7 +354,7 @@ function init() {
             .attr("transform", "translate(" + this.margin.left + "," + this.margin.top + ")");
 
         this.x = d3.scaleLinear().range([0, this.cell_size])
-            .domain([-30, 30]);
+            .domain([-wall_width/2, wall_width/2]);
         this.y = d3.scaleLinear().range([this.cell_size, 0])
             .domain([0, d3.max(this.number_pucks)]); // disks
         this.line = d3.line();
@@ -427,7 +437,7 @@ function init() {
                         throw_disk = true;
                         for (disk_piles = []; disk_piles.length < n_piles; disk_piles.push([]));
                         points = disk_piles.map(function (d, idx) {
-                            return {x: (idx - 4) * 2 * 4 + 4, y: d.length, z: -50};
+                            return {x: (idx - disk_radius) * 2 * disk_radius + disk_radius, y: d.length, z: -50};
                         });
                         histogram.update(points);
                         console.log(d);
