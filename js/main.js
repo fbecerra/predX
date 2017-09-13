@@ -55,10 +55,10 @@ function init() {
     var ground_width = 60,
         ground_height = 1,
         ground_depth = 80,
-        ground_position_x = -20,
+        ground_position_z = -20,
         ground_position_y = -20;
     var ground = new Physijs.BoxMesh(new THREE.BoxGeometry(ground_width, ground_height, ground_depth), ground_material, 0);
-    ground.position.z = ground_position_x;
+    ground.position.z = ground_position_z;
     ground.position.y = ground_position_y;
     scene.add(ground);
 
@@ -116,14 +116,17 @@ function init() {
         new THREE.MeshPhongMaterial({map: loader.load('assets/textures/wood-3.jpg'), opacity: 0.9}),
         .0, .3);
     var wall_width = 60,
-        wall_height = 60,
-        wall_depth = 2;
+        wall_height = 40,
+        wall_depth = 2,
+        wall_rotation = Math.PI / 6;
     var wall = new Physijs.BoxMesh(new THREE.BoxGeometry(wall_width, wall_height, wall_depth), wall_material, 0);
     wall.position.z = -60;
-    wall.position.y = -10;
-    wall.rotation.set(-Math.PI / 6, 0, 0);
+    wall.position.y = -3;
+    wall.rotation.set(-wall_rotation, 0, 0);
     wall.addEventListener('collision', handleCollision);
     scene.add(wall);
+
+    var svg_position = toScreenPosition(wall.position.clone());
 
     var lines = d3.range(-20, 30, 10).map(function(d){
         var color = (d==0) ? 'red' : "#464EAA";
@@ -146,14 +149,14 @@ function init() {
         line_geometry = new THREE.PlaneGeometry( 1, 41, 2 );
         line = new THREE.Mesh(line_geometry, line_material);
         line.rotation.set(-Math.PI / 6, 0, 0);
-        line.position.set(d.x, -1, -62.5);
+        line.position.set(d.x, -2.8, -58);
         scene.add(line);
 
         if (d.color == 'red'){
             line_geometry = new THREE.PlaneGeometry( 1, 60, 2 );
             line = new THREE.Mesh(line_geometry, line_material);
-            line.rotation.set(0, 0, Math.PI/2);
-            line.position.set(d.x, -19, -53);
+            line.rotation.set(-Math.PI / 6, 0, Math.PI/2);
+            line.position.set(d.x, -19, -49.5);
             scene.add(line);
 
             var dot_geometry = new THREE.CircleBufferGeometry( 1, 32 );
@@ -243,9 +246,9 @@ function init() {
 
     function Histogram() {
 
-        this.margin = {top: 40, right: 40, bottom: 40, left: 50};
-        this.width = 400;
-        this.height = 300;
+        this.margin = {top: 10, right: 0, bottom: 20, left: 0};
+        this.width = wall_width * 7.5;
+        this.height = wall_height * 7.5;
 
         this.div = d3.select("#viewport");
 
@@ -254,8 +257,8 @@ function init() {
             .attr("width", this.width + this.margin.left + this.margin.right)
             .attr("height", this.height + this.margin.top + this.margin.bottom)
             .style("position", "absolute")
-            .style("left", window.innerWidth / 2 - this.width / 2 - 2 * this.margin.left + this.margin.right)
-            .style("top", -20);
+            .style("left", svg_position.x - this.width/2)
+            .style("top", svg_position.y - this.height * 1.5 + this.margin.top);
 
         this.g = this.svg.append("g")
             .attr("transform", "translate(" + this.margin.left + "," + this.margin.top + ")");
@@ -348,7 +351,7 @@ function init() {
             .attr("height", this.height + this.margin.top + this.margin.bottom)
             .style("position", "absolute")
             .style("left", window.innerWidth * 2 / 3)
-            .style("top", window.innerHeight / 3 - this.height / 2 - 2 * this.margin.top + this.margin.bottom);
+            .style("top", window.innerHeight / 3 - this.height / 2 - 5 * this.margin.top + this.margin.bottom);
 
         this.g = this.svg.append("g")
             .attr("transform", "translate(" + this.margin.left + "," + this.margin.top + ")");
@@ -409,6 +412,20 @@ function init() {
                 .text(function(d){
                     return ''+d;
                 });
+
+            this.svg.append("text")
+                .attr("x", this.cell_size * (this.n - 1)/2 + this.margin.left)
+                .attr("y", this.height)
+                .attr("class", "axis-labels")
+                .attr("transform", "translate(0,10)")
+                .html("Number of pucks");
+            this.svg.append("text")
+                .attr("x", 0)
+                .attr("y", (this.n + 1)/2 * that.cell_size + that.margin.top)
+                .attr("class", "axis-labels")
+                .attr("transform", "translate(-"+this.cell_size * (this.n +1)/2+","+
+                                    ((this.n + 1)* this.cell_size/2 + this.margin.top)+") rotate(-90)")
+                .html("Number of games");
 
             this.cross_data.forEach(function (d) {
 
@@ -479,6 +496,23 @@ function init() {
             for (i = -1; ++i < n;) for (j = -1; ++j < m;) c.push({x: a[i], i: i, y: b[j], j: j});
             return c;
         }
+
+    }
+
+    function toScreenPosition(vector)
+    {
+        var widthHalf = 0.5 * webGLRenderer.context.canvas.width;
+        var heightHalf = 0.5 * webGLRenderer.context.canvas.height;
+
+        vector.project(camera);
+
+        vector.x = ( vector.x * widthHalf ) + widthHalf;
+        vector.y = - ( vector.y * heightHalf ) + heightHalf;
+
+        return {
+            x: vector.x,
+            y: vector.y
+        };
 
     }
 }

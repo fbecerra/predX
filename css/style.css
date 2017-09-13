@@ -15,6 +15,10 @@ body {
     shape-rendering: crispEdges;
 }
 
+.axis-labels{
+    text-align: center;
+}
+
 .frame {
     fill: white;
     /*opacity: 1.0;*/
