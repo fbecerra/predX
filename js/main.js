@@ -2,7 +2,7 @@ function init() {
 
     var frame_id;
     var throw_disk = false;
-    var i, j, disks, games;
+    var i, j, disks, games, all_points = [];
 
     Physijs.scripts.worker = 'js/physijs_worker.js';
     Physijs.scripts.ammo = 'ammo.js';
@@ -77,6 +77,7 @@ function init() {
         points = disk_piles.map(function (d, idx) {
             return {x: (idx - disk_radius) * 2 * disk_radius + disk_radius, y: d.length, z: -50};
         });
+        //all_points.push(points)
         histogram.update(points);
 
         current_disk += 1;
@@ -94,7 +95,12 @@ function init() {
             plot.update_cell(points, i, j);
             current_game++;
 
+            for (var ele in points){
+                all_points.push(points[ele]);
+            }
+
             if (current_game < games) {
+                // rest disk count
                 current_disk = 0;
                 for (disk_piles = []; disk_piles.length < n_piles; disk_piles.push([]));
                 points = disk_piles.map(function (d, idx) {
@@ -103,7 +109,7 @@ function init() {
                 histogram.update(points);
             } else {
                 throw_disk = false;
-                // fit gaussian
+                // fit gaussian to all_points
 
             }
 
@@ -186,24 +192,6 @@ function init() {
 
     frame_id = requestAnimationFrame(render);
     webGLRenderer.render(scene, camera);
-    
-
-    function throwDisks(n_disks, n_games) {
-        for (var games = 0; games < n_games; games++) {
-            for (var disks = 0; disks < n_disks; disks++) {
-
-                var min = -5, max = 5;
-                var ran_number = Math.random() * (max - min) + min;
-                current_vel = disk.getLinearVelocity();
-                disk.setLinearVelocity(new THREE.Vector3(current_vel.x + ran_number, 0, -disk_velocity));
-
-                frame_id = requestAnimationFrame(render);
-                webGLRenderer.render(scene, camera);
-
-                scene.simulate(undefined, 1);
-            }
-        }
-    }
 
 
     function render() {
@@ -442,6 +430,7 @@ function init() {
                     .attr("y", 0)
                     .attr("width", that.cell_size)
                     .attr("height", that.cell_size)
+                    .attr("fill", "white")
                     .on("click", function (d) {
                         i = d.i;
                         j = d.j;
@@ -457,7 +446,7 @@ function init() {
                             return {x: (idx - disk_radius) * 2 * disk_radius + disk_radius, y: d.length, z: -50};
                         });
                         histogram.update(points);
-                        console.log(d);
+                        d3.select(this).style("fill", "none");  // This cell is not clickable anymore
                     });
 
             });
