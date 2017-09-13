@@ -109,7 +109,6 @@ function init() {
                 histogram.update(points);
             } else {
                 throw_disk = false;
-                // fit gaussian to all_points
                 var fitted_data = fitGaussian(all_points);
                 plot.draw_fit(fitted_data, i, j)
             }
@@ -440,6 +439,7 @@ function init() {
                         j = d.j;
                         disks = d.x;
                         games = d.y;
+                        all_points = [];
 
                         disk_velocity = Math.sqrt(disks * games) * 50;
                         max_side_vel = disk_velocity/10;
