@@ -68,7 +68,7 @@ function init() {
         object.setLinearVelocity(new THREE.Vector3(0, 0, 0));
 
         // Move to pile
-        var pile_idx = Math.floor(object.position.x / n_piles) + n_piles / 2;
+        var pile_idx = Math.floor(object.position.x / (2 * disk_radius) + n_piles/2) //+ Math.floor(n_piles / 2);
         var this_pile = disk_piles[pile_idx];
 
         this_pile.push(object);
@@ -76,9 +76,8 @@ function init() {
 
         // Update histogram
         points = disk_piles.map(function (d, idx) {
-            return {x: (idx - disk_radius) * 2 * disk_radius + disk_radius, y: d.length, z: -50};
+            return {x: (idx - disk_radius) * 2 * disk_radius, y: d.length, z: -50};
         });
-        //all_points.push(points)
         histogram.update(points);
 
         current_disk += 1;
@@ -105,13 +104,13 @@ function init() {
                 current_disk = 0;
                 for (disk_piles = []; disk_piles.length < n_piles; disk_piles.push([]));
                 points = disk_piles.map(function (d, idx) {
-                    return {x: (idx - disk_radius) * 2 * disk_radius + disk_radius, y: d.length, z: -50};
+                    return {x: (idx - disk_radius) * 2 * disk_radius, y: d.length, z: -50};
                 });
                 histogram.update(points);
             } else {
                 throw_disk = false;
                 // fit gaussian to all_points
-
+                console.log(all_points)
             }
 
         }
@@ -178,10 +177,14 @@ function init() {
 
 
     var n_piles = Math.round(wall_width / (2 * disk_radius));
+    if (n_piles % 2 == 0){
+        n_piles += 1;
+    }
     for (var disk_piles = []; disk_piles.length < n_piles; disk_piles.push([]));
     var points = disk_piles.map(function (d, idx) {
-        return {x: (idx - disk_radius) * 2 * disk_radius + disk_radius, y: d.length, z: -50};
+        return {x: (idx - disk_radius) * 2 * disk_radius, y: d.length, z: -50};
     });
+    console.log(points)
     var histogram = new Histogram(),
         plot = new Plot(),
         offsets = [];
@@ -446,7 +449,7 @@ function init() {
                         throw_disk = true;
                         for (disk_piles = []; disk_piles.length < n_piles; disk_piles.push([]));
                         points = disk_piles.map(function (d, idx) {
-                            return {x: (idx - disk_radius) * 2 * disk_radius + disk_radius, y: d.length, z: -50};
+                            return {x: (idx - disk_radius) * 2 * disk_radius, y: d.length, z: -50};
                         });
                         histogram.update(points);
                         d3.select(this).style("fill", "none");  // This cell is not clickable anymore
