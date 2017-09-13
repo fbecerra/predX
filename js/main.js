@@ -29,7 +29,8 @@ function init() {
         current_disk = 0,
         current_game = 0,
         current_vel,
-        disk_velocity = 50;
+        disk_velocity,
+        max_side_vel;
 
     // add the disk to the scene
     scene.add(disk);
@@ -197,10 +198,9 @@ function init() {
     function render() {
 
         if (throw_disk){
-            var min = -5, max = 5;
-            var ran_number = Math.random() * (max - min) + min;
+            var side_vel = (Math.random() * 2 - 1) * max_side_vel;
             current_vel = disk.getLinearVelocity();
-            disk.setLinearVelocity(new THREE.Vector3(current_vel.x + ran_number, 0, -disk_velocity));
+            disk.setLinearVelocity(new THREE.Vector3(current_vel.x + side_vel, 0, -disk_velocity));
         }
 
         // render using requestAnimationFrame
@@ -437,6 +437,9 @@ function init() {
                         disks = d.x;
                         games = d.y;
 
+                        disk_velocity = Math.sqrt(disks * games) * 50;
+                        max_side_vel = disk_velocity/10;
+
                         // Reset everything
                         current_disk = 0;
                         current_game = 0;
@@ -447,7 +450,9 @@ function init() {
                         });
                         histogram.update(points);
                         d3.select(this).style("fill", "none");  // This cell is not clickable anymore
-                    });
+                    })
+                    .on("mouseover", function() { d3.select(this).style("cursor", "pointer"); })
+                    .on("mouseout", function(d) { d3.select(this).style("cursor", "default"); });;
 
             });
 
