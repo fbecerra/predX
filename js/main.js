@@ -2,7 +2,11 @@ function init() {
 
     var frame_id;
     var throw_disk = false;
-    var i, j, disks, games, all_points = [];
+    var i, j, disks, games, all_points = [], run_all = false;
+
+    var number_pucks = [10, 5, 2, 1],
+        number_games = [10, 5, 2, 1],
+        cross_data = cross(number_pucks, number_games);
 
     Physijs.scripts.worker = 'js/physijs_worker.js';
     Physijs.scripts.ammo = 'ammo.js';
@@ -68,7 +72,7 @@ function init() {
         object.setLinearVelocity(new THREE.Vector3(0, 0, 0));
 
         // Move to pile
-        var pile_idx = Math.floor(object.position.x / (2 * disk_radius) + n_piles/2) //+ Math.floor(n_piles / 2);
+        var pile_idx = Math.floor(object.position.x / (2 * disk_radius) + n_piles/2); //+ Math.floor(n_piles / 2);
         var this_pile = disk_piles[pile_idx];
 
         this_pile.push(object);
@@ -110,7 +114,10 @@ function init() {
             } else {
                 throw_disk = false;
                 var fitted_data = fitGaussian(all_points);
-                plot.draw_fit(fitted_data, i, j)
+                plot.draw_fit(fitted_data, i, j);
+                if (run_all){
+                    runNextCell();
+                }
             }
 
         }
@@ -184,7 +191,6 @@ function init() {
     var points = disk_piles.map(function (d, idx) {
         return {x: (idx - disk_radius) * 2 * disk_radius, y: d.length, z: -50};
     });
-    console.log(points)
     var histogram = new Histogram(),
         plot = new Plot(),
         offsets = [];
@@ -326,13 +332,10 @@ function init() {
 
         this.margin = {top: 10, right: 10, bottom: 40, left: 50};
         this.cell_size = 100;
-        this.number_pucks = [10, 5, 2, 1];
-        this.number_games = [10, 5, 2, 1];
-        this.n = this.number_pucks.length;
+        this.n = number_pucks.length;
         this.width = this.cell_size * (this.n + 1) - this.margin.left - this.margin.right;
         this.height = this.cell_size * (this.n + 1) - this.margin.top - this.margin.bottom;
 
-        this.cross_data = cross(this.number_pucks, this.number_games);
 
         this.div = d3.select("#viewport");
 
@@ -350,7 +353,7 @@ function init() {
         this.x = d3.scaleLinear().range([0, this.cell_size])
             .domain([-wall_width/2, wall_width/2]);
         this.y = d3.scaleLinear().range([this.cell_size, 0])
-            .domain([0, d3.max(this.number_pucks)]); // disks
+            .domain([0, d3.max(number_pucks)]); // disks
         this.line = d3.line();
 
         this.init = function () { //points, max_disks){
@@ -358,7 +361,7 @@ function init() {
             var that = this;
 
             /*this.x_axis = this.svg.selectAll(".x.axis")
-                .data(this.number_pucks).enter().append("g")
+                .data(number_pucks).enter().append("g")
                 .attr("class", "x axis");
             this.x_axis.attr("transform", function (d, i) {
                     return "translate(" + ((that.n - i - 1) * that.cell_size + that.margin.left) + "," +
@@ -369,7 +372,7 @@ function init() {
                 });
 
             this.y_axis = this.svg.selectAll(".y.axis")
-                .data(this.number_games).enter().append("g")
+                .data(number_games).enter().append("g")
                 .attr("class", "y axis");
             this.y_axis.attr("transform", function (d, i) {
                     return "translate(" + that.margin.left + "," + (i * that.cell_size + that.margin.top) + ")";
@@ -379,7 +382,7 @@ function init() {
                 });*/
 
             this.svg.selectAll(".x.labels")
-                .data(this.number_pucks).enter().append("text")
+                .data(number_pucks).enter().append("text")
                 .attr("class", "x labels")
                 .attr("x", function(d, i){
                     return (that.n - i - 1/2) * that.cell_size + that.margin.left ;
@@ -392,7 +395,7 @@ function init() {
                 });
 
             this.svg.selectAll(".y.labels")
-                .data(this.number_pucks).enter().append("text")
+                .data(number_pucks).enter().append("text")
                 .attr("class", "y labels")
                 .attr("x", function(d, i){
                     return that.margin.left - 24;
@@ -410,6 +413,20 @@ function init() {
                 .attr("class", "axis-labels")
                 .attr("transform", "translate(0,10)")
                 .html("Number of pucks");
+
+            this.svg.append("rect")
+                .attr("class", "button")
+                .attr("fill", "#bbb")
+                .attr("x", this.cell_size * (this.n - 1)/2 + this.margin.left)
+                .attr("y", this.height)
+                .text("hola")
+                .attr("width", 50)
+                .attr("height", 10)
+                .attr("transform", "translate(150,0)")
+                .on("click", function(){
+                    runNextCell();
+                });
+
             this.svg.append("text")
                 .attr("x", 0)
                 .attr("y", (this.n + 1)/2 * that.cell_size + that.margin.top)
@@ -418,7 +435,7 @@ function init() {
                                     ((this.n + 1)* this.cell_size/2 + this.margin.top)+") rotate(-90)")
                 .html("Number of games");
 
-            this.cross_data.forEach(function (d) {
+            cross_data.forEach(function (d) {
 
                 var cell = that.g.append("g")
                     .datum(d)
@@ -453,10 +470,11 @@ function init() {
                             return {x: (idx - disk_radius) * 2 * disk_radius, y: d.length, z: -50};
                         });
                         histogram.update(points);
+                        d.t = false;
                         d3.select(this).style("fill", "none");  // This cell is not clickable anymore
                     })
                     .on("mouseover", function() { d3.select(this).style("cursor", "pointer"); })
-                    .on("mouseout", function(d) { d3.select(this).style("cursor", "default"); });;
+                    .on("mouseout", function(d) { d3.select(this).style("cursor", "default"); });
 
             });
 
@@ -480,7 +498,7 @@ function init() {
                 .attr("class", "line")
                 .attr("fill", "none")
                 .attr("stroke", "black")
-                .attr("opacity", 0.5/that.number_games[j])
+                .attr("opacity", 0.5/number_games[j])
                 .attr("stroke-linejoin", "round")
                 .attr("stroke-linecap", "round")
                 .attr("stroke-width", 1.5)
@@ -516,12 +534,45 @@ function init() {
 
         };
 
-        function cross(a, b) {
-            var c = [], n = a.length, m = b.length, i, j;
-            for (i = -1; ++i < n;) for (j = -1; ++j < m;) c.push({x: a[i], i: i, y: b[j], j: j});
-            return c;
-        }
+    }
 
+    function cross(a, b) {
+        var c = [], n = a.length, m = b.length, i, j;
+        for (i = -1; ++i < n;) for (j = -1; ++j < m;) c.push({x: a[i], i: i, y: b[j], j: j, t:true});
+        return c;
+    }
+
+    function runNextCell(){
+
+        d3.selectAll(".frame").style("fill", "none");
+        run_all = true;
+
+        var filtered_data = cross_data.filter(function(d){return d.t === true;});
+
+        if (filtered_data.length > 0){
+
+            var this_data = filtered_data[0]
+
+            i = this_data.i;
+            j = this_data.j;
+            disks = this_data.x;
+            games = this_data.y;
+            all_points = [];
+
+            disk_velocity = Math.sqrt(disks * games) * 50;
+            max_side_vel = disk_velocity / 10;
+
+            // Reset everything
+            current_disk = 0;
+            current_game = 0;
+            throw_disk = true;
+            for (disk_piles = []; disk_piles.length < n_piles; disk_piles.push([]));
+            points = disk_piles.map(function (d, idx) {
+                return {x: (idx - disk_radius) * 2 * disk_radius, y: d.length, z: -50};
+            });
+            histogram.update(points);
+            this_data.t = false;
+        }
     }
 
     function toScreenPosition(vector)
@@ -570,7 +621,7 @@ function init() {
         var order = 0;
         var xrange = d3.extent(data, function(d){ return d.x; });
 
-        var p0 = [100, 10, 10, 10] //d3.median(data, function (d) { return d.y; })];
+        var p0 = [100, 10, 10, 10]; //d3.median(data, function (d) { return d.y; })];
         for (i = 1; i <= order; i++) {
             p0.push(0.0);
         }

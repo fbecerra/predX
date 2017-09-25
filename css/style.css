@@ -22,3 +22,8 @@ body {
 .frame {
     stroke: #aaa;
 }
+
+.option{
+    display: inline-block;
+    position: fixed;
+}
