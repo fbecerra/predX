@@ -106,6 +106,8 @@ function init() {
                     all_points.push(points[ele]);
                 }
 
+                histogram.add_circles(points);
+
                 if (current_game < games) {
                     // rest disk count
                     current_disk = 0;
@@ -117,7 +119,7 @@ function init() {
                 } else {
                     throw_disk = false;
                     var fitted_data = fitGaussian(all_points);
-                    plot.draw_fit(fitted_data, i, j);
+                    plot.draw_fit(fitted_data[0], i, j, fitted_data[1]);
                     if (run_all){
                         runNextCell();
                     }
@@ -144,7 +146,7 @@ function init() {
 
         var svg_position = toScreenPosition(wall.position.clone());
 
-        var lines = d3.range(-20, 30, 10).map(function(d){
+        var lines = d3.range(-24, 30, 6).map(function(d){
             var color = (d==0) ? 'red' : "#464EAA";
             return { x: d, color: color}
         });
@@ -275,19 +277,22 @@ function init() {
 
                 var that = this;
 
-                this.g.append("g")
+                /*this.g.append("g")
                     .attr("class", "axis axis--x")
                     .attr("transform", "translate(0," + this.height + ")")
-                    .call(d3.axisBottom(this.x));
+                    .call(d3.axisBottom(this.x));*/
+
                 this.g.append("g")
                     .attr("class", "axis axis--y")
-                    .attr("transform", "translate(" + this.width / 2 + ",0)")
+                    .attr("transform", "translate(" + (this.width/2) + ",0)")
                     .call(d3.axisLeft(this.y));
+
                 this.g.selectAll("rect")
                     .data(data)
                     .enter().append("rect")
                     .attr("class", "bar")
                     .attr("fill", "#222222")
+                    .attr("opacity", "0.5")
                     .attr("x", function (d, i) {
                         return that.x(i);
                     })
@@ -299,12 +304,14 @@ function init() {
                         return that.height - that.y(d.y);
                     });
 
+
             };
 
             this.update = function (data) {
 
                 var that = this;
 
+                // Update histogram
                 this.selection = this.g.selectAll(".bar")
                     .data(data);
 
@@ -328,6 +335,27 @@ function init() {
                     .attr("height", function (d) {
                         return that.height - that(d.y);
                     });
+            };
+
+            this.add_circles = function (data){
+
+                var that = this;
+
+                this.g.selectAll(".newpoints")
+                 .data(data)
+                 .enter().append("circle")
+                 .attr("class", "points")
+                 .attr("fill", "#222222")
+                 .attr("opacity", function(d){
+                     return d.y > 0 ? 0.3 : 0;
+                 })
+                 .attr("r", 5)
+                 .attr("cx", function (d, i) {
+                    return that.x(i) + that.x.bandwidth()/2;
+                 })
+                 .attr("cy", function (d) {
+                    return that.y(d.y);
+                 });
 
             };
         }
@@ -482,7 +510,6 @@ function init() {
                     .attr("fill", "#bbb")
                     .attr("x", this.cell_size * (this.n - 1)/2 + this.margin.left)
                     .attr("y", this.height)
-                    .text("hola")
                     .attr("width", 50)
                     .attr("height", 10)
                     .attr("transform", "translate(150,0)")
@@ -616,7 +643,7 @@ function init() {
 
             };
 
-            this.draw_fit = function (data, i, j) {
+            this.draw_fit = function (data, i, j, parameters) {
 
                 var that = this;
 
@@ -640,7 +667,23 @@ function init() {
                     .attr("stroke-width", 1.5)
                     .attr("d", this.line);
 
+                this.g.selectAll(".cell")
+                    .filter(function(d){ return d.i === i & d.j === j;})
+                    .append("text")
+                    .datum(parameters[0])
+                    .attr("text-anchor", "left")
+                    .attr("dy", "1em")
+                    .text(function(d) { return "p1[0] = "+d3.format(".1f")(d); });
 
+                this.g.selectAll(".cell")
+                    .filter(function(d){ return d.i === i & d.j === j;})
+                    .append("text")
+                    .datum(parameters[1])
+                    .attr("text-anchor", "left")
+                    .attr("dy", "2em")
+                    .text(function(d) { return "p1[1] = "+d3.format(".1f")(d); });
+
+                console.log(parameters);
             };
 
         }
@@ -759,7 +802,7 @@ function init() {
                 fit_data.push({x: i, y: model(p1, i)[0]});
             }
 
-            return fit_data;
+            return [fit_data, p1];
         }
     });
 
