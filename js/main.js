@@ -116,6 +116,7 @@ function init() {
                         return {x: (idx - disk_radius) * 2 * disk_radius, y: d.length, z: -50};
                     });
                     histogram.update(points);
+                    // TODO: Show GAME X
                 } else {
                     throw_disk = false;
                     var fitted_data = fitGaussian(all_points);
@@ -560,6 +561,7 @@ function init() {
                                 return {x: (idx - disk_radius) * 2 * disk_radius, y: d.length, z: -50};
                             });
                             histogram.update(points);
+                            // TODO: clean points on histogram
                             d.t = false;
                             d3.select(this).style("fill", "none");  // This cell is not clickable anymore
                         })
@@ -574,6 +576,7 @@ function init() {
 
                 var that = this;
 
+                /* Add lines
                 this.line.x(function (d) {
                         return that.x(d.x)
                     })
@@ -592,7 +595,28 @@ function init() {
                     .attr("stroke-linejoin", "round")
                     .attr("stroke-linecap", "round")
                     .attr("stroke-width", 1.5)
-                    .attr("d", this.line);
+                    .attr("d", this.line);*/
+
+                // Add dots
+                this.g.selectAll(".cell")
+                    .filter(function(d){ return d.i === i & d.j === j;})
+                    //.append("circle")
+                    .selectAll(".newdatapoints")
+                    .data(data)
+                    .enter().append("circle")
+                    .attr("class", "datapoints")
+                    .attr("fill", "#222222")
+                    .attr("opacity", function(d){
+                        return d.y > 0 ? 0.7/number_games[j] : 0;
+                    })
+                    .attr("r", 1.5)
+                    .attr("cx", function (d, i) {
+                        return that.x(d.x);
+                    })
+                    .attr("cy", function (d) {
+                        return that.y(d.y);
+                    });
+
 
 
             };
