@@ -377,10 +377,9 @@ function init() {
 
             this.margin = {top: 10, right: 20, bottom: 20, left: 20};
             this.width = 200;
-            this.height = 200;
+            this.height = 500;
 
             this.div = d3.select("#viewport");
-
             this.svg = this.div.append("svg")
                 .attr("id", "slider")
                 .attr("width", this.width + this.margin.left + this.margin.right)
@@ -389,23 +388,33 @@ function init() {
                 .style("left", 200 - this.width/2)
                 .style("top", 100 - this.margin.top);
 
-            this.text_group = this.svg.append("g")
-                .attr("transform", "translate(" + this.margin.left + "," + this.height/3 + ")");
+            /* Title */
+            this.svg.append("g")
+                .attr("transform", "translate(" + this.margin.left + "," + this.height/8 + ")")
+                .attr("id", "grouptitle")
+                .append("text")
+                .attr("id", "title")
+                .html("Title");
 
-            this.text = this.text_group.append("text")
-                .html("Show/hide lines")
+            /* Description */
+            this.svg.append("g")
+                .attr("transform", "translate(" + this.margin.left + "," + this.height/6 + ")")
+                .append("text")
+                .attr("id", "description")
+                .html("<tspan x='0' dy='1.2em'>Click on the cells to play the game</tspan>" +
+                    "<tspan x='0' dy='1.2em'>If at any point you get bored, we</tspan>" +
+                    "<tspan x='0' dy='1.2em'>can <a id='text-link'>do the rest for you!</a></tspan>" +
+                    "<tspan x='0' dy='1.2em'> </tspan>" +
+                    "<tspan x='0' dy='1.2em'>Once you have finished, you can</tspan>" +
+                    "<tspan x='0' dy='1.2em'>explore different realizations by</tspan>" +
+                    "<tspan x='0' dy='1.2em'>moving the slider below</tspan>" +
+                    "<tspan x='0' dy='1.2em'></tspan>");
 
-            this.text_group.append("rect")
-                .attr("class", "button")
-                .attr("fill", "#bbb")
-                .attr("x", 0)
-                .attr("y", 0)
-                .attr("width", 50)
-                .attr("height", 10)
-                .attr("transform", "translate(0,0)")
-                .on("click", function(){
-                    runNextCell();
-                });
+            d3.select("#text-link").on("click", function(d){
+                runNextCell();
+            });
+
+
 
             this.slider = this.svg.append("g")
                 .attr("class", "slider")
