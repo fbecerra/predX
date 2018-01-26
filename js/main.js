@@ -386,8 +386,8 @@ function init() {
                 .attr("width", this.width + this.margin.left + this.margin.right)
                 .attr("height", this.height + this.margin.top + this.margin.bottom)
                 .style("position", "absolute")
-                .style("left", 1200 - this.width/2)
-                .style("top", 600 - this.margin.top);
+                .style("left", 200 - this.width/2)
+                .style("top", 100 - this.margin.top);
 
             this.text_group = this.svg.append("g")
                 .attr("transform", "translate(" + this.margin.left + "," + this.height/3 + ")");
