@@ -120,6 +120,7 @@ function init() {
                 } else {
                     throw_disk = false;
                     var fitted_data = fitGaussian(all_points);
+                    console.log(fitted_data)
                     plot.draw_fit(fitted_data[0], i, j, fitted_data[1]);
                     if (run_all){
                         runNextCell();
@@ -287,7 +288,7 @@ function init() {
                 this.g.append("g")
                     .attr("class", "axis axis--y")
                     .attr("transform", "translate(" + (this.width/2) + ",0)")
-                    .call(d3.axisLeft(this.y));
+                    .call(d3.axisLeft(this.y).tickValues(d3.range(1,10)));
 
                 this.g.selectAll("rect")
                     .data(data)
@@ -401,7 +402,7 @@ function init() {
                 .attr("transform", "translate(" + this.margin.left + "," + this.height/6 + ")")
                 .append("text")
                 .attr("id", "description")
-                .html("<tspan x='0' dy='1.2em'>Click on the cells to play the game</tspan>" +
+                .html("<tspan x='0' dy='1.2em'>Click on the cells to start playing!</tspan>" +
                     "<tspan x='0' dy='1.2em'>If at any point you get bored, we</tspan>" +
                     "<tspan x='0' dy='1.2em'>can <a id='text-link'>do the rest for you!</a></tspan>" +
                     "<tspan x='0' dy='1.2em'> </tspan>" +
@@ -490,7 +491,7 @@ function init() {
             };
 
 
-        };
+        }
 
         function Plot() {
 
@@ -664,7 +665,7 @@ function init() {
                     .attr("class", "datapoints")
                     .attr("fill", "#222222")
                     .attr("opacity", function(d){
-                        return d.y > 0 ? 0.7/number_games[j] : 0;
+                        return d.y > 0 ? 0.5 : 0;
                     })
                     .attr("r", 1.5)
                     .attr("cx", function (d, i) {
@@ -752,19 +753,23 @@ function init() {
                     .filter(function(d){ return d.i === i & d.j === j;})
                     .append("text")
                     .datum(parameters[0])
-                    .attr("text-anchor", "left")
+                    .attr("class", "parameters")
+                    .attr("text-anchor", "middle")
                     .attr("dy", "1em")
-                    .text(function(d) { return "p1[0] = "+d3.format(".1f")(d); });
+                    .attr("x", plot.cell_size/2)
+                    .text(function(d) { return "Height = "+d3.format(".1f")(d/10); });
 
                 this.g.selectAll(".cell")
                     .filter(function(d){ return d.i === i & d.j === j;})
                     .append("text")
                     .datum(parameters[1])
-                    .attr("text-anchor", "left")
+                    .attr("class", "parameters")
+                    .attr("text-anchor", "middle")
                     .attr("dy", "2em")
-                    .text(function(d) { return "p1[1] = "+d3.format(".1f")(d); });
+                    .attr("x", plot.cell_size/2)
+                    .text(function(d) { return "Width = "+d3.format(".1f")(d/10); });
 
-                console.log(parameters);
+                console.log(parameters)
             };
 
         }
@@ -878,9 +883,11 @@ function init() {
             };
             p1 = optimize.newton(chi, p0);
             //p1 = optimize.fmin(chi2, p0);
+            p1[2] = 0; // Centered x-axis
+            p1[3] = 0; // Baseline on y=0
 
             var fit_data = [];
-            for (i = xrange[0]; i <= xrange[1]; i += (xrange[1] - xrange[0]) / 500.) {
+            for (i = -ground_width / 2; i <= ground_width / 2; i += ground_width / 500.) {
                 fit_data.push({x: i, y: model(p1, i)[0]});
             }
 

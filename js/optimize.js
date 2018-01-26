@@ -314,12 +314,12 @@ window.optimize = (function () {
         x = sim[0];
         fval = fsim[0];
 
-        if (iterations >= maxiter)
+        /*if (iterations >= maxiter)
             console.log("Too many interations.", iterations);
         else
             console.log("Converged in", iterations, "iterations.");
 
-        console.log("Function value =", fval);
+        console.log("Function value =", fval);*/
 
         return x;
     };

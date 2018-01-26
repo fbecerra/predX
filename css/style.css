@@ -29,6 +29,8 @@ body {
 
 .frame {
     stroke: #aaa;
+    stroke-width: 2;
+    z-index: 10;
 }
 
 .ticks {
@@ -64,4 +66,16 @@ body {
     stroke: #000;
     stroke-opacity: 0.5;
     stroke-width: 1.25px;
+}
+
+#text-link{
+    cursor: pointer;
+    fill: blue;
+    text-decoration: underline;
+}
+
+.parameters{
+    font: 12px sans-serif;
+    opacity: 0.5;
+    font-style: italic;
 }
