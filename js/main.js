@@ -116,7 +116,7 @@ function init() {
                         return {x: (idx - disk_radius) * 2 * disk_radius, y: d.length, z: -50};
                     });
                     histogram.update(points);
-                    // TODO: Show GAME X
+                    game_label.update_label(current_game+1)
                 } else {
                     throw_disk = false;
                     var fitted_data = fitGaussian(all_points);
@@ -200,6 +200,7 @@ function init() {
         var histogram = new Histogram(),
             plot = new Plot(),
             slider = new Slider(),
+            game_label = new GameLabel();
             offsets = [];
         histogram.init(points);
         plot.init(); //points.length, max_disks);
@@ -359,6 +360,16 @@ function init() {
                  });
 
             };
+
+            this.remove_circles = function (){
+
+                // Update histogram
+                this.selection = this.g.selectAll(".points")
+                    .data([]);
+
+                this.selection.exit().remove();
+
+            };
         }
 
 
@@ -421,6 +432,37 @@ function init() {
                     .attr("r", 9);
 
             };
+
+        }
+
+        function GameLabel() {
+
+            this.margin = {top: 10, right: 20, bottom: 20, left: 30};
+            this.width = 400;
+            this.height = 60;
+
+            this.div = d3.select("#viewport");
+
+            this.svg = this.div.append("svg")
+                .attr("id", "slider")
+                .attr("width", this.width + this.margin.left + this.margin.right)
+                .attr("height", this.height + this.margin.top + this.margin.bottom)
+                .style("position", "absolute")
+                .style("left", 700) // window_width /2
+                .style("top", 720);
+
+            this.group = this.svg.append("g")
+                .attr("transform", "translate(" + this.margin.left + "," + this.height / 2 + ")");
+
+            this.text = this.group.append("text")
+                .attr("class", "gameLabel")
+                .attr("text-anchor", "middle")
+                .html("");
+
+            this.update_label = function (idx) {
+                this.text.html("Game "+idx);
+            };
+
 
         }
 
@@ -555,13 +597,14 @@ function init() {
                             // Reset everything
                             current_disk = 0;
                             current_game = 0;
+                            game_label.update_label(current_game+1)
                             throw_disk = true;
                             for (disk_piles = []; disk_piles.length < n_piles; disk_piles.push([]));
                             points = disk_piles.map(function (d, idx) {
                                 return {x: (idx - disk_radius) * 2 * disk_radius, y: d.length, z: -50};
                             });
                             histogram.update(points);
-                            // TODO: clean points on histogram
+                            histogram.remove_circles();
                             d.t = false;
                             d3.select(this).style("fill", "none");  // This cell is not clickable anymore
                         })
@@ -685,7 +728,7 @@ function init() {
                     .attr("class", "fit")
                     .attr("fill", "none")
                     .attr("stroke", "red")
-                    .attr("opacity", 1)
+                    .attr("opacity", 0.7)
                     .attr("stroke-linejoin", "round")
                     .attr("stroke-linecap", "round")
                     .attr("stroke-width", 1.5)
@@ -747,6 +790,7 @@ function init() {
                     return {x: (idx - disk_radius) * 2 * disk_radius, y: d.length, z: -50};
                 });
                 histogram.update(points);
+                histogram.remove_circles();
                 this_data.t = false;
             }
         }
