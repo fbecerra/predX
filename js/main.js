@@ -199,12 +199,12 @@ function init() {
         });
         var histogram = new Histogram(),
             plot = new Plot(),
-            slider = new Slider(),
+            instructions = new Instructions(),
             game_label = new GameLabel();
             offsets = [];
         histogram.init(points);
         plot.init(); //points.length, max_disks);
-        slider.init();
+        instructions.init();
 
         // call the render function
         var step = 0;
@@ -373,11 +373,11 @@ function init() {
         }
 
 
-        function Slider() {
+        function Instructions() {
 
             this.margin = {top: 10, right: 20, bottom: 20, left: 20};
             this.width = 200;
-            this.height = 20;
+            this.height = 200;
 
             this.div = d3.select("#viewport");
 
@@ -387,7 +387,25 @@ function init() {
                 .attr("height", this.height + this.margin.top + this.margin.bottom)
                 .style("position", "absolute")
                 .style("left", 1200 - this.width/2)
-                .style("top", 600 - this.height * 1.5 + this.margin.top);
+                .style("top", 600 - this.margin.top);
+
+            this.text_group = this.svg.append("g")
+                .attr("transform", "translate(" + this.margin.left + "," + this.height/3 + ")");
+
+            this.text = this.text_group.append("text")
+                .html("Show/hide lines")
+
+            this.text_group.append("rect")
+                .attr("class", "button")
+                .attr("fill", "#bbb")
+                .attr("x", 0)
+                .attr("y", 0)
+                .attr("width", 50)
+                .attr("height", 10)
+                .attr("transform", "translate(0,0)")
+                .on("click", function(){
+                    runNextCell();
+                });
 
             this.slider = this.svg.append("g")
                 .attr("class", "slider")
@@ -444,7 +462,6 @@ function init() {
             this.div = d3.select("#viewport");
 
             this.svg = this.div.append("svg")
-                .attr("id", "slider")
                 .attr("width", this.width + this.margin.left + this.margin.right)
                 .attr("height", this.height + this.margin.top + this.margin.bottom)
                 .style("position", "absolute")
@@ -464,7 +481,7 @@ function init() {
             };
 
 
-        }
+        };
 
         function Plot() {
 
@@ -547,18 +564,6 @@ function init() {
                     .attr("class", "axis-labels")
                     .attr("transform", "translate(0,10)")
                     .html("Number of pucks");
-
-                this.svg.append("rect")
-                    .attr("class", "button")
-                    .attr("fill", "#bbb")
-                    .attr("x", this.cell_size * (this.n - 1)/2 + this.margin.left)
-                    .attr("y", this.height)
-                    .attr("width", 50)
-                    .attr("height", 10)
-                    .attr("transform", "translate(150,0)")
-                    .on("click", function(){
-                        runNextCell();
-                    });
 
                 this.svg.append("text")
                     .attr("x", 0)
