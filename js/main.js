@@ -120,7 +120,6 @@ function init() {
                 } else {
                     throw_disk = false;
                     var fitted_data = fitGaussian(all_points);
-                    console.log(fitted_data)
                     plot.draw_fit(fitted_data[0], i, j, fitted_data[1]);
                     if (run_all){
                         runNextCell();
@@ -689,7 +688,59 @@ function init() {
                     var i, j;
                     [i,j] = key.split("-");
 
-                    this.line.x(function (d) {
+                    this.cell = this.g.selectAll(".cell")
+                        .filter(function(d){ return d.i === +i & d.j === +j;});
+
+                    // Update points
+                    this.points = this.cell.selectAll(".datapoints")
+                        .data(realizations[key]);
+
+                    this.points.attr("class", "datapoints")
+                        .attr("fill", "#222222")
+                        .attr("opacity", function(d){
+                            return d.y > 0 ? 0.5 : 0;
+                        })
+                        .attr("r", 1.5)
+                        .attr("cx", function (d, i) {
+                            return that.x(d.x);
+                        })
+                        .attr("cy", function (d) {
+                            return that.y(d.y);
+                        });
+
+
+                    // Add new points to cell
+                    this.points.enter().append("circle")
+                        .attr("class", "datapoints")
+                        .attr("fill", "#222222")
+                        .attr("opacity", function(d){
+                            return d.y > 0 ? 0.5 : 0;
+                        })
+                        .attr("r", 1.5)
+                        .attr("cx", function (d, i) {
+                            return that.x(d.x);
+                        })
+                        .attr("cy", function (d) {
+                            return that.y(d.y);
+                        });
+
+                    this.points.exit().remove();
+
+                    // Remove fit
+                    this.path = this.cell.selectAll("path")
+                        .data([]);
+                    this.path.exit().remove();
+
+                    // Remove legend
+                    this.legend = this.cell.selectAll(".parameters")
+                        .data([]);
+                    this.legend.exit().remove();
+
+                    // Recalculate fit
+                    var new_fitted_data = fitGaussian(realizations[key]);
+                    that.draw_fit(new_fitted_data[0], +i, +j, new_fitted_data[1]);
+
+                    /*this.line.x(function (d) {
                             return that.x(d.x)
                         })
                         .y(function (d) {
@@ -720,7 +771,7 @@ function init() {
                         .attr("stroke-width", 1.5)
                         .attr("d", this.line);
 
-                    this.lines.exit().remove();
+                    this.lines.exit().remove();*/
                 }
 
             };
@@ -769,7 +820,6 @@ function init() {
                     .attr("x", plot.cell_size/2)
                     .text(function(d) { return "Width = "+d3.format(".1f")(d/10); });
 
-                console.log(parameters)
             };
 
         }

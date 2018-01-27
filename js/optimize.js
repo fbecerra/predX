@@ -385,7 +385,7 @@ window.optimize = (function () {
                 break;
         }
 
-        console.log("Converged after", i, "iterations.");
+        /*console.log("Converged after", i, "iterations.");*/
 
         return x0;
     };
