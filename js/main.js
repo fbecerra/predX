@@ -86,6 +86,7 @@ function init() {
                 return {x: (idx - disk_radius) * 2 * disk_radius, y: d.length, z: -50};
             });
             histogram.update(points);
+            plot.update_cell(points, i, j);
 
             current_disk += 1;
             // Add another disk
@@ -99,7 +100,7 @@ function init() {
                 });
                 offsets.push({pucks: disks, offset: offsetMax});
                 // update plot
-                plot.update_cell(points, i, j);
+                plot.finish_game(i, j);
                 current_game++;
 
                 for (var ele in points){
@@ -201,7 +202,7 @@ function init() {
             game_label = new GameLabel();
             offsets = [];
         histogram.init(points);
-        plot.init(); //points.length, max_disks);
+        plot.init(points);
         instructions.init();
 
         // call the render function
@@ -250,7 +251,7 @@ function init() {
 
         function Histogram() {
 
-            this.margin = {top: window.innerHeight * 10 / 800, right: 0, bottom: window.innerHeight * 20 / 800, left: 0};
+            this.margin = {top: window.innerHeight * 11 / 800, right: 0, bottom: window.innerHeight * 20 / 800, left: 0};
             this.width = window.innerHeight * 450 / 800;
             this.height = window.innerHeight * 300 / 800;
 
@@ -303,8 +304,6 @@ function init() {
                     .attr("height", function (d) {
                         return that.height - that.y(d.y);
                     });
-
-
             };
 
             this.update = function (data) {
@@ -489,9 +488,10 @@ function init() {
                 .domain([0, d3.max(number_pucks)]); // disks
             this.line = d3.line();
 
-            this.init = function () { //points, max_disks){
+            this.init = function (data) { //points, max_disks){
 
                 var that = this;
+                that.init_data = data;
 
                 /*this.x_axis = this.svg.selectAll(".x.axis")
                  .data(number_pucks).enter().append("g")
@@ -593,6 +593,22 @@ function init() {
                         .on("mouseover", function() { d3.select(this).style("cursor", "pointer"); })
                         .on("mouseout", function(d) { d3.select(this).style("cursor", "default"); });
 
+                    cell.selectAll(".newbar")
+                        .data(data)
+                        .enter().append("rect")
+                        .attr("class", "newbar")
+                        .attr("opacity", 0.3/number_games[j])
+                        .attr("x", function (d, i) {
+                            return that.x_bar(d.x);
+                        })
+                        .attr("y", function (d) {
+                            return that.y(d.y);
+                        })
+                        .attr("width", that.x_bar.bandwidth())
+                        .attr("height", function (d) {
+                            return that.cell_size - that.y(d.y);
+                        });
+
                 });
 
             };
@@ -623,13 +639,17 @@ function init() {
                     .attr("d", this.line);*/
 
                 // Update cell
-                this.g.selectAll(".cell")
-                    .filter(function(d){ return d.i === i & d.j === j;})
-                    .selectAll(".newbar")
-                    .data(data)
-                    .enter().append("rect")
-                    .attr("class", "bar")
-                    .attr("fill", "#222222")
+                this.cell = this.g.selectAll(".cell")
+                    .filter(function(d){ return d.i === i & d.j === j;});
+
+                // Update histogram
+                this.selection = this.cell.selectAll(".newbar")
+                    .data(data);
+
+                this.selection.exit().remove();
+
+                this.selection.attr("class", "newbar")
+                    .transition().duration(100)
                     .attr("opacity", 0.3/number_games[j])
                     .attr("x", function (d, i) {
                         return that.x_bar(d.x);
@@ -639,13 +659,56 @@ function init() {
                     })
                     .attr("width", that.x_bar.bandwidth())
                     .attr("height", function (d) {
-                        console.log(that.x_bar.bandwidth())
                         return that.cell_size - that.y(d.y);
                     });
 
-            };
+                this.selection.enter().append("rect")
+                    .attr("class", "newbar")
+                    .transition().duration(100)
+                    .attr("opacity", 0.3/number_games[j])
+                    .attr("x", function (d, i) {
+                        return that.x_bar(d.x);
+                    })
+                    .attr("y", function (d) {
+                        return that.y(d.y);
+                    })
+                    .attr("width", that.x_bar.bandwidth())
+                    .attr("height", function (d) {
+                        return that.cell_size - that.y(d.y);
+                    });
+                };
 
-            this.update_all_cells = function(idx){
+                this.finish_game = function (i, j) {
+
+                    var that = this;
+
+                    this.cell = this.g.selectAll(".cell")
+                        .filter(function(d){ return d.i === i & d.j === j;});
+
+                    // Update histogram
+                    this.selection = this.cell.selectAll(".newbar")
+                        .classed("newbar", false)
+                        .attr("class", "bar")
+
+                    this.cell.selectAll(".newbar")
+                        .data(that.init_data)
+                        .enter().append("rect")
+                        .attr("class", "newbar")
+                        .attr("opacity", 0.3/number_games[j])
+                        .attr("x", function (d, i) {
+                            return that.x_bar(d.x);
+                        })
+                        .attr("y", function (d) {
+                            return that.y(d.y);
+                        })
+                        .attr("width", that.x_bar.bandwidth())
+                        .attr("height", function (d) {
+                            return that.cell_size - that.y(d.y);
+                        });
+
+                };
+
+                this.update_all_cells = function(idx){
 
                 var that = this;
 
@@ -658,7 +721,7 @@ function init() {
                     this.cell = this.g.selectAll(".cell")
                         .filter(function(d){ return d.i === +i & d.j === +j;});
 
-                    // Update points
+                    // Update bars
                     this.bars = this.cell.selectAll(".newbar")
                         .data(realizations[key]);
 
@@ -673,12 +736,11 @@ function init() {
                         })
                         .attr("width", that.x_bar.bandwidth())
                         .attr("height", function (d) {
-                            console.log(that.x_bar.bandwidth())
                             return that.cell_size - that.y(d.y);
                         });
 
 
-                    // Add new points to cell
+                    // Add new bars to cell
                     this.bars.enter().append("rect")
                         .attr("class", "bar")
                         .attr("fill", "#222222")
@@ -691,7 +753,6 @@ function init() {
                         })
                         .attr("width", that.x_bar.bandwidth())
                         .attr("height", function (d) {
-                            console.log(that.x_bar.bandwidth())
                             return that.cell_size - that.y(d.y);
                         });
 

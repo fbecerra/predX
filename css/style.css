@@ -83,3 +83,12 @@ body {
     opacity: 0.5;
     font-style: italic;
 }
+
+.newbar{
+    opacity: 0.5;
+    fill: #377eb8;
+}
+
+.bar{
+    fill: #222222;
+}
