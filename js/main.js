@@ -106,8 +106,6 @@ function init() {
                     all_points.push(points[ele]);
                 }
 
-                histogram.add_circles(points);
-
                 if (current_game < games) {
                     // rest disk count
                     current_disk = 0;
@@ -339,37 +337,6 @@ function init() {
                     });
             };
 
-            this.add_circles = function (data){
-
-                var that = this;
-
-                this.g.selectAll(".newpoints")
-                 .data(data)
-                 .enter().append("circle")
-                 .attr("class", "points")
-                 .attr("fill", "#222222")
-                 .attr("opacity", function(d){
-                     return d.y > 0 ? 0.3 : 0;
-                 })
-                 .attr("r", 5)
-                 .attr("cx", function (d, i) {
-                    return that.x(i) + that.x.bandwidth()/2;
-                 })
-                 .attr("cy", function (d) {
-                    return that.y(d.y);
-                 });
-
-            };
-
-            this.remove_circles = function (){
-
-                // Update histogram
-                this.selection = this.g.selectAll(".points")
-                    .data([]);
-
-                this.selection.exit().remove();
-
-            };
         }
 
 
@@ -514,8 +481,10 @@ function init() {
             this.g = this.svg.append("g")
                 .attr("transform", "translate(" + this.margin.left + "," + this.margin.top + ")");
 
-            this.x = d3.scaleLinear().range([0, this.cell_size])
+            this.x_fit = d3.scaleLinear().range([0, this.cell_size])
                 .domain([-wall_width/2, wall_width/2]);
+            this.x_bar = d3.scaleBand().range([0, this.cell_size]).padding(0.1)
+                .domain(d3.range(-(wall_width+disk_radius)/2, (wall_width+disk_radius)/2 + 1, disk_radius*2));
             this.y = d3.scaleLinear().range([this.cell_size, 0])
                 .domain([0, d3.max(number_pucks)]); // disks
             this.line = d3.line();
@@ -618,7 +587,6 @@ function init() {
                                 return {x: (idx - disk_radius) * 2 * disk_radius, y: d.length, z: -50};
                             });
                             histogram.update(points);
-                            histogram.remove_circles();
                             d.t = false;
                             d3.select(this).style("fill", "none");  // This cell is not clickable anymore
                         })
@@ -654,27 +622,26 @@ function init() {
                     .attr("stroke-width", 1.5)
                     .attr("d", this.line);*/
 
-                // Add dots
+                // Update cell
                 this.g.selectAll(".cell")
                     .filter(function(d){ return d.i === i & d.j === j;})
-                    //.append("circle")
-                    .selectAll(".newdatapoints")
+                    .selectAll(".newbar")
                     .data(data)
-                    .enter().append("circle")
-                    .attr("class", "datapoints")
+                    .enter().append("rect")
+                    .attr("class", "bar")
                     .attr("fill", "#222222")
-                    .attr("opacity", function(d){
-                        return d.y > 0 ? 0.5 : 0;
+                    .attr("opacity", 0.3/number_games[j])
+                    .attr("x", function (d, i) {
+                        return that.x_bar(d.x);
                     })
-                    .attr("r", 1.5)
-                    .attr("cx", function (d, i) {
-                        return that.x(d.x);
-                    })
-                    .attr("cy", function (d) {
+                    .attr("y", function (d) {
                         return that.y(d.y);
+                    })
+                    .attr("width", that.x_bar.bandwidth())
+                    .attr("height", function (d) {
+                        console.log(that.x_bar.bandwidth())
+                        return that.cell_size - that.y(d.y);
                     });
-
-
 
             };
 
@@ -692,39 +659,43 @@ function init() {
                         .filter(function(d){ return d.i === +i & d.j === +j;});
 
                     // Update points
-                    this.points = this.cell.selectAll(".datapoints")
+                    this.bars = this.cell.selectAll(".newbar")
                         .data(realizations[key]);
 
-                    this.points.attr("class", "datapoints")
+                    this.bars.attr("class", "bar")
                         .attr("fill", "#222222")
-                        .attr("opacity", function(d){
-                            return d.y > 0 ? 0.5 : 0;
+                        .attr("opacity", 0.3/number_games[j])
+                        .attr("x", function (d, i) {
+                            return that.x_bar(d.x);
                         })
-                        .attr("r", 1.5)
-                        .attr("cx", function (d, i) {
-                            return that.x(d.x);
-                        })
-                        .attr("cy", function (d) {
+                        .attr("y", function (d) {
                             return that.y(d.y);
+                        })
+                        .attr("width", that.x_bar.bandwidth())
+                        .attr("height", function (d) {
+                            console.log(that.x_bar.bandwidth())
+                            return that.cell_size - that.y(d.y);
                         });
 
 
                     // Add new points to cell
-                    this.points.enter().append("circle")
-                        .attr("class", "datapoints")
+                    this.bars.enter().append("rect")
+                        .attr("class", "bar")
                         .attr("fill", "#222222")
-                        .attr("opacity", function(d){
-                            return d.y > 0 ? 0.5 : 0;
+                        .attr("opacity", 0.3/number_games[j])
+                        .attr("x", function (d, i) {
+                            return that.x_bar(d.x);
                         })
-                        .attr("r", 1.5)
-                        .attr("cx", function (d, i) {
-                            return that.x(d.x);
-                        })
-                        .attr("cy", function (d) {
+                        .attr("y", function (d) {
                             return that.y(d.y);
+                        })
+                        .attr("width", that.x_bar.bandwidth())
+                        .attr("height", function (d) {
+                            console.log(that.x_bar.bandwidth())
+                            return that.cell_size - that.y(d.y);
                         });
 
-                    this.points.exit().remove();
+                    this.bars.exit().remove();
 
                     // Remove fit
                     this.path = this.cell.selectAll("path")
@@ -781,7 +752,7 @@ function init() {
                 var that = this;
 
                 this.line.x(function (d) {
-                        return that.x(d.x)
+                        return that.x_fit(d.x)
                     })
                     .y(function (d) {
                         return that.y(d.y)
@@ -793,7 +764,7 @@ function init() {
                     .datum(data)
                     .attr("class", "fit")
                     .attr("fill", "none")
-                    .attr("stroke", "red")
+                    .attr("stroke", "#e41a1c")
                     .attr("opacity", 0.7)
                     .attr("stroke-linejoin", "round")
                     .attr("stroke-linecap", "round")
@@ -859,7 +830,6 @@ function init() {
                     return {x: (idx - disk_radius) * 2 * disk_radius, y: d.length, z: -50};
                 });
                 histogram.update(points);
-                histogram.remove_circles();
                 this_data.t = false;
             }
         }
