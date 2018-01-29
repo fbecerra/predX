@@ -250,9 +250,9 @@ function init() {
 
         function Histogram() {
 
-            this.margin = {top: 10, right: 0, bottom: 20, left: 0};
-            this.width = wall_width * 7.5;
-            this.height = wall_height * 7.5;
+            this.margin = {top: window.innerHeight * 10 / 800, right: 0, bottom: window.innerHeight * 20 / 800, left: 0};
+            this.width = window.innerHeight * 450 / 800;
+            this.height = window.innerHeight * 300 / 800;
 
             this.div = d3.select("#viewport");
 
