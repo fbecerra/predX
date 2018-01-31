@@ -358,8 +358,8 @@ function init() {
 
         function Instructions() {
 
-            this.margin = {top: 10, right: 20, bottom: 20, left: 20};
-            this.width = 200;
+            this.margin = {top: 10, right: 40, bottom: 20, left: 20};
+            this.width = 300;
             this.height = 500;
 
             this.div = d3.select("#viewport");
@@ -373,35 +373,40 @@ function init() {
 
             /* Title */
             this.svg.append("g")
-                .attr("transform", "translate(" + this.margin.left + "," + this.height/8 + ")")
-                .attr("id", "grouptitle")
+                .attr("transform", "translate(" + this.margin.left + "," + this.height/10 + ")")
                 .append("text")
-                .attr("id", "title")
-                .html("Title");
-
-            /* Description */
+                .attr("class", "title")
+                .html("Slide-the-puck");
             this.svg.append("g")
                 .attr("transform", "translate(" + this.margin.left + "," + this.height/6 + ")")
                 .append("text")
-                .attr("id", "description")
-                .html("<tspan x='0' dy='1.2em'>Click on the cells to start playing!</tspan>" +
-                    "<tspan x='0' dy='1.2em'>If at any point you get bored, we</tspan>" +
-                    "<tspan x='0' dy='1.2em'>can <a id='text-link'>do the rest for you!</a></tspan>" +
-                    "<tspan x='0' dy='1.2em'> </tspan>" +
-                    "<tspan x='0' dy='1.2em'>Once you have finished, you can</tspan>" +
-                    "<tspan x='0' dy='1.2em'>explore different realizations by</tspan>" +
-                    "<tspan x='0' dy='1.2em'>moving the slider below</tspan>" +
-                    "<tspan x='0' dy='1.2em'></tspan>");
+                .attr("class", "instructions")
+                .html("<tspan x='0' dy='1.2em'><a class='number'>1.</a> Decide how rough your table is</tspan>");
 
+            /* Slider */
+            this.slider = this.svg.append("g")
+                .attr("class", "slider")
+                .attr("transform", "translate(" + (this.margin.left + 20)+ "," + this.height/4 + ")");
+
+            /* Description */
+            this.svg.append("g")
+                .attr("transform", "translate(" + this.margin.left + "," + this.height/3 + ")")
+                .append("text")
+                .attr("class", "instructions")
+                .html("<tspan x='0' dy='1.2em'><a class='number'>2.</a> Click anywhere on the grid to throw the puck</tspan>");
+            this.svg.append("g")
+                .attr("transform", "translate(" + this.margin.left + "," + this.height/2.4 + ")")
+                .append("text")
+                .attr("class", "instructions")
+                .html("<tspan x='0' dy='1.2em'><a class='number'>3.</a> Click <a id='text-link'>here</a> to finish the game for you</tspan>");
             d3.select("#text-link").on("click", function(d){
                 runNextCell();
             });
-
-
-
-            this.slider = this.svg.append("g")
-                .attr("class", "slider")
-                .attr("transform", "translate(" + this.margin.left + "," + this.height/2 + ")");
+            this.svg.append("g")
+                .attr("transform", "translate(" + this.margin.left + "," + this.height/2 + ")")
+                .append("text")
+                .attr("class", "instructions")
+                .html("<tspan x='0' dy='1.2em'><a class='number'>4.</a> Click <a id='text-save'>here</a> to save a screenshot</tspan>");
 
             this.x = d3.scaleLinear()
                 .domain([0, 1])
@@ -981,7 +986,6 @@ function init() {
             };
             p1 = optimize.newton(chi, p0);
             //p1 = optimize.fmin(chi2, p0);
-            p1[2] = 0; // Centered x-axis
             p1[3] = 0; // Baseline on y=0
 
             var fit_data = [];

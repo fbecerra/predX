@@ -3,6 +3,9 @@ body {
     margin: 0;
     overflow: hidden;
 }
+text{
+    font: 14px sans-serif;
+}
 .axis,
 .frame {
     shape-rendering: crispEdges;
@@ -37,7 +40,7 @@ body {
     z-index: -10;
 }
 
-.ticks {
+.ticks text{
     font: 10px sans-serif;
 }
 
@@ -70,6 +73,16 @@ body {
     stroke: #000;
     stroke-opacity: 0.5;
     stroke-width: 1.25px;
+}
+
+.title{
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.number{
+    font-size: 14px;
+    font-weight: 800;
 }
 
 #text-link{
