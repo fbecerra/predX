@@ -118,6 +118,7 @@ function init() {
                     game_label.update_label(current_game+1)
                 } else {
                     throw_disk = false;
+                    histogram.clear();
                     var fitted_data = fitGaussian(all_points);
                     plot.draw_fit(fitted_data[0], i, j, fitted_data[1]);
                     if (run_all){
@@ -292,8 +293,8 @@ function init() {
                     .data(data)
                     .enter().append("rect")
                     .attr("class", "bar")
-                    .attr("fill", "#222222")
-                    .attr("opacity", "0.5")
+                    /*.attr("fill", "#222222")
+                    .attr("opacity", "0.5")*/
                     .attr("x", function (d, i) {
                         return that.x(i);
                     })
@@ -333,6 +334,22 @@ function init() {
                     })
                     .attr("height", function (d) {
                         return that.height - that(d.y);
+                    });
+            };
+
+            this.clear = function () {
+
+                var that = this;
+
+                // Update histogram
+                this.g.selectAll(".bar")
+                    .attr("class", "bar")
+                    .transition().duration(100)
+                    .attr("y", function (d) {
+                        return that.y(0);
+                    })
+                    .attr("height", function (d) {
+                        return that.height - that.y(0);
                     });
             };
 
@@ -688,7 +705,7 @@ function init() {
                     // Update histogram
                     this.selection = this.cell.selectAll(".newbar")
                         .classed("newbar", false)
-                        .attr("class", "bar")
+                        .attr("class", "plotbar")
 
                     this.cell.selectAll(".newbar")
                         .data(that.init_data)

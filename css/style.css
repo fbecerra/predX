@@ -84,11 +84,11 @@ body {
     font-style: italic;
 }
 
-.newbar{
+.newbar, .bar{
     opacity: 0.5;
-    fill: #377eb8;
+    fill: #984ea3;
 }
 
-.bar{
+.plotbar{
     fill: #222222;
 }
