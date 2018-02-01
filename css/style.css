@@ -106,3 +106,8 @@ text{
 .plotbar{
     fill: #222222;
 }
+
+.gameLabel, #gameLabel{
+    text-anchor: middle;
+    font-size: 36px;
+}

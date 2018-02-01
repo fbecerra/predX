@@ -478,8 +478,8 @@ function init() {
 
         function GameLabel() {
 
-            this.margin = {top: 10, right: 20, bottom: 20, left: 30};
-            this.width = 400;
+            this.margin = {top: 10, right: 10, bottom: 10, left: 200};
+            this.width = 60;
             this.height = 60;
 
             this.div = d3.select("#viewport");
@@ -487,20 +487,36 @@ function init() {
             this.svg = this.div.append("svg")
                 .attr("width", this.width + this.margin.left + this.margin.right)
                 .attr("height", this.height + this.margin.top + this.margin.bottom)
+                .attr("text-anchor", "left")
                 .style("position", "absolute")
-                .style("left", 700) // window_width /2
-                .style("top", 720);
+                .style("left", x_renderer + width_renderer/2 - this.margin.left) // window_width /2
+                .style("top", y_renderer + height_renderer/2 - this.margin.top)
+
 
             this.group = this.svg.append("g")
-                .attr("transform", "translate(" + this.margin.left + "," + this.height / 2 + ")");
+                .attr("transform", "translate(" + this.margin.left + "," + this.height / 2 + ")")
+                .attr("text-anchor", "left")
+                .attr("id", "gameLabel")
 
             this.text = this.group.append("text")
                 .attr("class", "gameLabel")
-                .attr("text-anchor", "middle")
-                .html("");
+                .attr("text-anchor", "left")
+                .attr("opacity", 0)
+                .text("");
 
             this.update_label = function (idx) {
-                this.text.html("Game "+idx);
+
+                var that = this;
+
+                that.group.selectAll("text")
+                    .transition().duration(1)
+                    .text("Game "+idx)
+                    .attr("opacity", 1)
+
+                that.group.selectAll("text")
+                    .transition().duration(400)
+                    .text("Game "+idx)
+                    .attr("opacity", 0)
             };
 
 
