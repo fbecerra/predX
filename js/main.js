@@ -25,9 +25,14 @@ function init() {
             1000);
 
         // create a render and set the size
+        var x_renderer = window.innerWidth/80,
+            y_renderer = window.innerHeight/10,
+            width_renderer = window.innerWidth*4/5,
+            height_renderer = window.innerHeight*4/5;
         var webGLRenderer = new THREE.WebGLRenderer({antialias: true});
         webGLRenderer.setClearColor(new THREE.Color("#fff"));
         webGLRenderer.setSize(window.innerWidth, window.innerHeight);
+        webGLRenderer.setViewport(x_renderer, y_renderer, width_renderer, height_renderer);
 
         var disk_radius = 4,
             disk_height = 2,
@@ -252,9 +257,9 @@ function init() {
 
         function Histogram() {
 
-            this.margin = {top: window.innerHeight * 11 / 800, right: 0, bottom: window.innerHeight * 20 / 800, left: 0};
-            this.width = window.innerHeight * 450 / 800;
-            this.height = window.innerHeight * 300 / 800;
+            this.margin = {top: 15 * window.innerHeight/800, right: 0, bottom: 20 * window.innerHeight/800, left: 0};
+            this.width = 360 * window.innerHeight/800;
+            this.height = 238 * window.innerHeight/800;
 
             this.div = d3.select("#viewport");
 
@@ -263,8 +268,8 @@ function init() {
                 .attr("width", this.width + this.margin.left + this.margin.right)
                 .attr("height", this.height + this.margin.top + this.margin.bottom)
                 .style("position", "absolute")
-                .style("left", svg_position.x - this.width/2)
-                .style("top", svg_position.y - this.height * 1.5 + this.margin.top);
+                .style("left", x_renderer + width_renderer/2 - this.width/2)
+                .style("top", y_renderer + this.margin.top);
 
             this.g = this.svg.append("g")
                 .attr("transform", "translate(" + this.margin.left + "," + this.margin.top + ")");
@@ -358,8 +363,8 @@ function init() {
 
         function Instructions() {
 
-            this.margin = {top: 10, right: 40, bottom: 20, left: 20};
-            this.width = 300;
+            this.margin = {top: 10, right: 40, bottom: 20, left: 0};
+            this.width = 250;
             this.height = 500;
 
             this.div = d3.select("#viewport");
@@ -371,42 +376,63 @@ function init() {
                 .style("left", 200 - this.width/2)
                 .style("top", 100 - this.margin.top);
 
-            /* Title */
-            this.svg.append("g")
+            /* Instructions */
+            this.text = this.svg.append("g")
                 .attr("transform", "translate(" + this.margin.left + "," + this.height/10 + ")")
                 .append("text")
-                .attr("class", "title")
-                .html("Slide-the-puck");
-            this.svg.append("g")
-                .attr("transform", "translate(" + this.margin.left + "," + this.height/6 + ")")
-                .append("text")
-                .attr("class", "instructions")
-                .html("<tspan x='0' dy='1.2em'><a class='number'>1.</a> Decide how rough your table is</tspan>");
+                .attr("dy", 0);
+
+            var instructions = ["Slide-the-puck",
+                "Decide how rough your table is",
+                "Click anywhere on the grid to throw the puck",
+                "Click here to finish the game for you",
+                "Click here to save a screenshot"];
+
+            for (var idx in instructions){
+                var text = this.text,
+                    words = instructions[idx].split(/\s+/).reverse(),
+                    word,
+                    line = [],
+                    lineNumber = 0,
+                    lineHeight = 1.1, // ems
+                    paragraphSeparation = 5, //ems
+                    y = text.attr("y"),
+                    dy = parseFloat(text.attr("dy")),
+                    tspan = text.append("tspan").attr("x", 0).attr("y", y).attr("dy", dy + paragraphSeparation + "em");
+                while (word = words.pop()) {
+                    if (word == 'here'){
+                        var text_class;
+                        if (idx == 3){
+                            text_class = "text-link"
+                        } else if (idx == 4){
+                            text_class = "text-save"
+                        }
+                        word = "<a id='"+text_class+"'>"+word+"</a>"
+                    }
+                    line.push(word);
+                    if (idx == 0){
+                        tspan.html("<a class='title'>"+line+"</a>");
+                    } else {
+                        lineNumber == 0 ? tspan.html("<a class='number'>" + parseInt(idx) + ".</a> " + line.join(" "))
+                            : tspan.html(line.join(" "));
+                    }
+                    if (tspan.node().getComputedTextLength() > this.width) {
+                        line.pop();
+                        lineNumber == 0 ? tspan.html("<a class='number'>" + parseInt(idx) + ".</a> " + line.join(" "))
+                            : tspan.html(line.join(" "));                        line = [word];
+                        tspan = text.append("tspan").attr("x", 0).attr("y", y).attr("dy", ++lineNumber * lineHeight + dy + "em").text(word);
+                    }
+                }
+            }
+
+            d3.select("#text-link").on("click", function(d){
+                runNextCell();
+            });
 
             /* Slider */
             this.slider = this.svg.append("g")
                 .attr("class", "slider")
-                .attr("transform", "translate(" + (this.margin.left + 20)+ "," + this.height/4 + ")");
-
-            /* Description */
-            this.svg.append("g")
-                .attr("transform", "translate(" + this.margin.left + "," + this.height/3 + ")")
-                .append("text")
-                .attr("class", "instructions")
-                .html("<tspan x='0' dy='1.2em'><a class='number'>2.</a> Click anywhere on the grid to throw the puck</tspan>");
-            this.svg.append("g")
-                .attr("transform", "translate(" + this.margin.left + "," + this.height/2.4 + ")")
-                .append("text")
-                .attr("class", "instructions")
-                .html("<tspan x='0' dy='1.2em'><a class='number'>3.</a> Click <a id='text-link'>here</a> to finish the game for you</tspan>");
-            d3.select("#text-link").on("click", function(d){
-                runNextCell();
-            });
-            this.svg.append("g")
-                .attr("transform", "translate(" + this.margin.left + "," + this.height/2 + ")")
-                .append("text")
-                .attr("class", "instructions")
-                .html("<tspan x='0' dy='1.2em'><a class='number'>4.</a> Click <a id='text-save'>here</a> to save a screenshot</tspan>");
+                .attr("transform", "translate(" + (this.margin.left + 20)+ "," + ((paragraphSeparation*2+lineHeight*28/16)*18) + ")");
 
             this.x = d3.scaleLinear()
                 .domain([0, 1])
@@ -483,7 +509,7 @@ function init() {
         function Plot() {
 
             this.margin = {top: 10, right: 10, bottom: 40, left: 50};
-            this.cell_size = 100;
+            this.cell_size = 120;
             this.n = number_pucks.length;
             this.width = this.cell_size * (this.n + 1) - this.margin.left - this.margin.right;
             this.height = this.cell_size * (this.n + 1) - this.margin.top - this.margin.bottom;
@@ -496,8 +522,10 @@ function init() {
                 .attr("width", this.width + this.margin.left + this.margin.right)
                 .attr("height", this.height + this.margin.top + this.margin.bottom)
                 .style("position", "absolute")
-                .style("left", window.innerWidth * 2 / 3)
-                .style("top", window.innerHeight / 3 - this.height / 2 - 5 * this.margin.top + this.margin.bottom);
+                //.style("left", window.innerWidth * 2 / 3)
+                .style("left", x_renderer + width_renderer - this.width/2 - this.margin.left)
+                //.style("top", window.innerHeight / 3 - this.height / 2 - 5 * this.margin.top + this.margin.bottom);
+                .style("top", window.innerHeight/2 - this.height/2)
 
             this.g = this.svg.append("g")
                 .attr("transform", "translate(" + this.margin.left + "," + this.margin.top + ")");
