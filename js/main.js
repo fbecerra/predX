@@ -424,7 +424,6 @@ function init() {
                     }
                 }
             }
-
             d3.select("#text-link").on("click", function(d){
                 runNextCell();
             });
@@ -937,7 +936,7 @@ function init() {
 
             if (filtered_data.length > 0){
 
-                var this_data = filtered_data[0];
+                var this_data = filtered_data[filtered_data.length-1];
 
                 i = this_data.i;
                 j = this_data.j;
