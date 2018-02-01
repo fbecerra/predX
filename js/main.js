@@ -42,7 +42,8 @@ function init() {
             current_game = 0,
             current_vel,
             disk_velocity,
-            max_side_vel;
+            max_side_vel,
+            roughness = 0.1;
 
         // add the disk to the scene
         scene.add(disk);
@@ -385,8 +386,8 @@ function init() {
             var instructions = ["Slide-the-puck",
                 "Decide how rough your table is",
                 "Click anywhere on the grid to throw the puck",
-                "Click here to finish the game for you",
-                "Click here to save a screenshot"];
+                "Click here to finish the game for you"]
+                //"Click here to save a screenshot"];
 
             for (var idx in instructions){
                 var text = this.text,
@@ -419,13 +420,17 @@ function init() {
                     if (tspan.node().getComputedTextLength() > this.width) {
                         line.pop();
                         lineNumber == 0 ? tspan.html("<a class='number'>" + parseInt(idx) + ".</a> " + line.join(" "))
-                            : tspan.html(line.join(" "));                        line = [word];
+                            : tspan.html(line.join(" "));
+                        line = [word];
                         tspan = text.append("tspan").attr("x", 0).attr("y", y).attr("dy", ++lineNumber * lineHeight + dy + "em").text(word);
                     }
                 }
             }
             d3.select("#text-link").on("click", function(d){
                 runNextCell();
+            });
+            d3.select("#text-save").on("click", function(d){
+                console.log("saving...")
             });
 
             /* Slider */
@@ -434,7 +439,7 @@ function init() {
                 .attr("transform", "translate(" + (this.margin.left + 20)+ "," + ((paragraphSeparation*2+lineHeight*28/16)*18) + ")");
 
             this.x = d3.scaleLinear()
-                .domain([0, 1])
+                .domain([0.5, 1.5])
                 .range([0, this.width])
                 .clamp(true);
 
@@ -453,7 +458,9 @@ function init() {
                     .call(d3.drag()
                         .on("start.interrupt", function() { that.slider.interrupt(); })
                         .on("start drag", function() {
-                            plot.update_all_cells(that.x.invert(d3.event.x));
+                            //plot.update_all_cells(that.x.invert(d3.event.x));
+                            plot.reset_all_cells();
+                            roughness = 0.1 * that.x.invert(d3.event.x);
                             that.handle.attr("cx", that.x(that.x.invert(d3.event.x)));
                         }));
 
@@ -469,7 +476,8 @@ function init() {
 
                 this.handle = this.slider.insert("circle", ".track-overlay")
                     .attr("class", "handle")
-                    .attr("r", 9);
+                    .attr("r", 9)
+                    .attr("cx", that.x(1));
 
             };
 
@@ -553,6 +561,21 @@ function init() {
                 .domain([0, d3.max(number_pucks)]); // disks
             this.line = d3.line();
 
+            this.svg.append("text")
+                .attr("x", this.cell_size * this.n/2 + this.margin.left)
+                .attr("y", this.height)
+                .attr("class", "axis-labels")
+                .attr("text-anchor", "middle")
+                .html("Number of pucks");
+
+            this.svg.append("text")
+                .attr("x", 0)
+                .attr("y", (this.n + 1)/2 * this.cell_size + this.margin.top)
+                .attr("class", "axis-labels")
+                .attr("transform", "translate(-"+this.cell_size * (this.n +1)/2+","+
+                    ((this.n + 1)* this.cell_size/2 + this.margin.top)+") rotate(-90)")
+                .html("Number of games");
+
             this.init = function (data) { //points, max_disks){
 
                 var that = this;
@@ -601,20 +624,6 @@ function init() {
                         return ''+d;
                     });
 
-                this.svg.append("text")
-                    .attr("x", this.cell_size * (this.n - 1)/2 + this.margin.left)
-                    .attr("y", this.height)
-                    .attr("class", "axis-labels")
-                    .attr("transform", "translate(0,10)")
-                    .html("Number of pucks");
-
-                this.svg.append("text")
-                    .attr("x", 0)
-                    .attr("y", (this.n + 1)/2 * that.cell_size + that.margin.top)
-                    .attr("class", "axis-labels")
-                    .attr("transform", "translate(-"+this.cell_size * (this.n +1)/2+","+
-                        ((this.n + 1)* this.cell_size/2 + this.margin.top)+") rotate(-90)")
-                    .html("Number of games");
 
                 cross_data.forEach(function (d) {
 
@@ -640,7 +649,7 @@ function init() {
                             all_points = [];
 
                             disk_velocity = Math.sqrt(disks * games) * 50;
-                            max_side_vel = disk_velocity/10;
+                            max_side_vel = roughness * disk_velocity;
 
                             // Reset everything
                             current_disk = 0;
@@ -653,7 +662,7 @@ function init() {
                             });
                             histogram.update(points);
                             d.t = false;
-                            d3.select(this).style("fill", "none");  // This cell is not clickable anymore
+                            d3.select(this).attr("fill", "none");  // This cell is not clickable anymore
                         })
                         .on("mouseover", function() { d3.select(this).style("cursor", "pointer"); })
                         .on("mouseout", function(d) { d3.select(this).style("cursor", "default"); });
@@ -741,39 +750,39 @@ function init() {
                     .attr("height", function (d) {
                         return that.cell_size - that.y(d.y);
                     });
-                };
+            };
 
-                this.finish_game = function (i, j) {
+            this.finish_game = function (i, j) {
 
-                    var that = this;
+                var that = this;
 
-                    this.cell = this.g.selectAll(".cell")
-                        .filter(function(d){ return d.i === i & d.j === j;});
+                this.cell = this.g.selectAll(".cell")
+                    .filter(function(d){ return d.i === i & d.j === j;});
 
-                    // Update histogram
-                    this.selection = this.cell.selectAll(".newbar")
-                        .classed("newbar", false)
-                        .attr("class", "plotbar")
+                // Update histogram
+                this.selection = this.cell.selectAll(".newbar")
+                    .classed("newbar", false)
+                    .attr("class", "plotbar")
 
-                    this.cell.selectAll(".newbar")
-                        .data(that.init_data)
-                        .enter().append("rect")
-                        .attr("class", "newbar")
-                        .attr("opacity", 0.3/number_games[j])
-                        .attr("x", function (d, i) {
-                            return that.x_bar(d.x);
-                        })
-                        .attr("y", function (d) {
-                            return that.y(d.y);
-                        })
-                        .attr("width", that.x_bar.bandwidth())
-                        .attr("height", function (d) {
-                            return that.cell_size - that.y(d.y);
-                        });
+                this.cell.selectAll(".newbar")
+                    .data(that.init_data)
+                    .enter().append("rect")
+                    .attr("class", "newbar")
+                    .attr("opacity", 0.3/number_games[j])
+                    .attr("x", function (d, i) {
+                        return that.x_bar(d.x);
+                    })
+                    .attr("y", function (d) {
+                        return that.y(d.y);
+                    })
+                    .attr("width", that.x_bar.bandwidth())
+                    .attr("height", function (d) {
+                        return that.cell_size - that.y(d.y);
+                    });
 
-                };
+            };
 
-                this.update_all_cells = function(idx){
+            this.update_all_cells = function(idx){
 
                 var that = this;
 
@@ -873,6 +882,35 @@ function init() {
 
             };
 
+            this.reset_all_cells = function() {
+
+                var that = this;
+
+                cross_data.forEach(function (e) {
+
+                    var cell = that.g.selectAll(".cell")
+                        .filter(function(d){ return d.i === e.i & d.j === e.j;});
+
+                    cell.select(".frame").attr("fill", "white")
+
+                    // Remove bars
+                    this.oldbars = cell.selectAll(".plotbar")
+                        .data([]);
+                    this.oldbars.exit().remove();
+
+                    // Remove fit
+                    this.path = cell.selectAll("path")
+                        .data([]);
+                    this.path.exit().remove();
+
+                    // Remove legend
+                    this.legend = cell.selectAll(".parameters")
+                        .data([]);
+                    this.legend.exit().remove();
+
+                });
+            };
+
             this.draw_fit = function (data, i, j, parameters) {
 
                 var that = this;
@@ -945,7 +983,7 @@ function init() {
                 all_points = [];
 
                 disk_velocity = Math.sqrt(disks * games) * 50;
-                max_side_vel = disk_velocity / 10;
+                max_side_vel = roughness * disk_velocity;
 
                 // Reset everything
                 current_disk = 0;
