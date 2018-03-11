@@ -107,6 +107,7 @@ function init() {
                 offsets.push({pucks: disks, offset: offsetMax});
                 // update plot
                 plot.finish_game(i, j);
+                histogram.finish_game();
                 current_game++;
 
                 for (var ele in points){
@@ -120,11 +121,10 @@ function init() {
                     points = disk_piles.map(function (d, idx) {
                         return {x: (idx - disk_radius) * 2 * disk_radius, y: d.length, z: -50};
                     });
-                    histogram.update(points);
                     game_label.update_label(current_game+1)
                 } else {
                     throw_disk = false;
-                    histogram.clear();
+                    //histogram.clear();
                     var fitted_data = fitGaussian(all_points);
                     plot.draw_fit(fitted_data[0], i, j, fitted_data[1]);
                     if (run_all){
@@ -284,6 +284,7 @@ function init() {
                 this.y.domain([0, 10]); // disks
 
                 var that = this;
+                that.init_data = data;
 
                 /*this.g.append("g")
                     .attr("class", "axis axis--x")
@@ -295,12 +296,12 @@ function init() {
                     .attr("transform", "translate(" + (this.width/2) + ",0)")
                     .call(d3.axisLeft(this.y).tickValues(d3.range(1,10)));
 
-                this.g.selectAll("rect")
+                this.g.selectAll(".newbar")
                     .data(data)
                     .enter().append("rect")
-                    .attr("class", "bar")
-                    /*.attr("fill", "#222222")
-                    .attr("opacity", "0.5")*/
+                    .attr("class", "newbar")
+                    /*.attr("fill", "#222222")*/
+                    .attr("opacity", 0.3/number_games[j])
                     .attr("x", function (d, i) {
                         return that.x(i);
                     })
@@ -318,28 +319,64 @@ function init() {
                 var that = this;
 
                 // Update histogram
-                this.selection = this.g.selectAll(".bar")
+                this.selection = this.g.selectAll(".newbar")
                     .data(data);
 
                 this.selection.exit().remove();
 
-                this.selection.attr("class", "bar")
+                this.selection.attr("class", "newbar")
                     .transition().duration(100)
+                    .attr("opacity", 0.3/number_games[j])
+                    .attr("x", function (d, i) {
+                        return that.x(i);
+                    })
                     .attr("y", function (d) {
                         return that.y(d.y);
                     })
+                    .attr("width", this.x.bandwidth())
                     .attr("height", function (d) {
                         return that.height - that.y(d.y);
                     });
 
                 this.selection.enter().append("rect")
-                    .attr("class", "bar")
+                    .attr("class", "newbar")
                     .transition().duration(100)
+                    .attr("opacity", 0.3/number_games[j])
+                    .attr("x", function (d, i) {
+                        return that.x(i);
+                    })
                     .attr("y", function (d) {
                         return that.y(d.y);
                     })
+                    .attr("width", this.x.bandwidth())
                     .attr("height", function (d) {
                         return that.height - that(d.y);
+                    });
+            };
+
+            this.finish_game = function () {
+
+                var that = this;
+
+                this.g.selectAll(".newbar")
+                    .classed("newbar", false)
+                    .attr("class", "plotbar");
+
+                // Update histogram
+                this.g.selectAll(".newbar")
+                    .data(that.init_data)
+                    .enter().append("rect")
+                    .attr("class", "newbar")
+                    .attr("opacity", 0.3/number_games[j])
+                    .attr("x", function (d, i) {
+                        return that.x(i);
+                    })
+                    .attr("y", function (d) {
+                        return that.y(d.y);
+                    })
+                    .attr("width", this.x.bandwidth())
+                    .attr("height", function (d) {
+                        return that.height - that.y(0);
                     });
             };
 
@@ -348,15 +385,9 @@ function init() {
                 var that = this;
 
                 // Update histogram
-                this.g.selectAll(".bar")
-                    .attr("class", "bar")
-                    .transition().duration(100)
-                    .attr("y", function (d) {
-                        return that.y(0);
-                    })
-                    .attr("height", function (d) {
-                        return that.height - that.y(0);
-                    });
+                this.g.selectAll(".plotbar")
+                    .data([])
+                    .exit().remove()
             };
 
         }
@@ -497,13 +528,13 @@ function init() {
                 .attr("text-anchor", "left")
                 .style("position", "absolute")
                 .style("left", x_renderer + width_renderer/2 - this.margin.left) // window_width /2
-                .style("top", y_renderer + height_renderer/2 - this.margin.top)
+                .style("top", y_renderer + height_renderer/2 - this.margin.top);
 
 
             this.group = this.svg.append("g")
                 .attr("transform", "translate(" + this.margin.left + "," + this.height / 2 + ")")
                 .attr("text-anchor", "left")
-                .attr("id", "gameLabel")
+                .attr("id", "gameLabel");
 
             this.text = this.group.append("text")
                 .attr("class", "gameLabel")
@@ -518,7 +549,7 @@ function init() {
                 that.group.selectAll("text")
                     .transition().duration(1)
                     .text("Game "+idx)
-                    .attr("opacity", 1)
+                    .attr("opacity", 1);
 
                 that.group.selectAll("text")
                     .transition().duration(400)
@@ -545,10 +576,8 @@ function init() {
                 .attr("width", this.width + this.margin.left + this.margin.right)
                 .attr("height", this.height + this.margin.top + this.margin.bottom)
                 .style("position", "absolute")
-                //.style("left", window.innerWidth * 2 / 3)
                 .style("left", x_renderer + width_renderer - this.width/2 - this.margin.left)
-                //.style("top", window.innerHeight / 3 - this.height / 2 - 5 * this.margin.top + this.margin.bottom);
-                .style("top", window.innerHeight/2 - this.height/2)
+                .style("top", window.innerHeight/2 - this.height/2);
 
             this.g = this.svg.append("g")
                 .attr("transform", "translate(" + this.margin.left + "," + this.margin.top + ")");
@@ -576,31 +605,10 @@ function init() {
                     ((this.n + 1)* this.cell_size/2 + this.margin.top)+") rotate(-90)")
                 .html("Number of games");
 
-            this.init = function (data) { //points, max_disks){
+            this.init = function (data) {
 
                 var that = this;
                 that.init_data = data;
-
-                /*this.x_axis = this.svg.selectAll(".x.axis")
-                 .data(number_pucks).enter().append("g")
-                 .attr("class", "x axis");
-                 this.x_axis.attr("transform", function (d, i) {
-                 return "translate(" + ((that.n - i - 1) * that.cell_size + that.margin.left) + "," +
-                 (that.margin.top + that.n * that.cell_size) + ")";
-                 })
-                 .each(function (d, i) {
-                 d3.select(this).call(d3.axisBottom(that.x).ticks(8))
-                 });
-
-                 this.y_axis = this.svg.selectAll(".y.axis")
-                 .data(number_games).enter().append("g")
-                 .attr("class", "y axis");
-                 this.y_axis.attr("transform", function (d, i) {
-                 return "translate(" + that.margin.left + "," + (i * that.cell_size + that.margin.top) + ")";
-                 })
-                 .each(function (d, i) {
-                 d3.select(this).call(d3.axisLeft(that.y))
-                 });*/
 
                 this.svg.selectAll(".x.labels")
                     .data(number_pucks).enter().append("text")
@@ -654,13 +662,15 @@ function init() {
                             // Reset everything
                             current_disk = 0;
                             current_game = 0;
-                            game_label.update_label(current_game+1)
+                            histogram.clear();
+                            game_label.update_label(current_game+1);
                             throw_disk = true;
                             for (disk_piles = []; disk_piles.length < n_piles; disk_piles.push([]));
                             points = disk_piles.map(function (d, idx) {
                                 return {x: (idx - disk_radius) * 2 * disk_radius, y: d.length, z: -50};
                             });
-                            histogram.update(points);
+                            //histogram.update(points);
+                            histogram.init(points);
                             d.t = false;
                             d3.select(this).attr("fill", "none");  // This cell is not clickable anymore
                         })
@@ -690,27 +700,6 @@ function init() {
             this.update_cell = function (data, i, j) {
 
                 var that = this;
-
-                /* Add lines
-                this.line.x(function (d) {
-                        return that.x(d.x)
-                    })
-                    .y(function (d) {
-                        return that.y(d.y)
-                    });
-
-                this.g.selectAll(".cell")
-                    .filter(function(d){ return d.i === i & d.j === j;})
-                    .append("path")
-                    .datum(data)
-                    .attr("class", "line")
-                    .attr("fill", "none")
-                    .attr("stroke", "black")
-                    .attr("opacity", 0.5/number_games[j])
-                    .attr("stroke-linejoin", "round")
-                    .attr("stroke-linecap", "round")
-                    .attr("stroke-width", 1.5)
-                    .attr("d", this.line);*/
 
                 // Update cell
                 this.cell = this.g.selectAll(".cell")
@@ -762,7 +751,7 @@ function init() {
                 // Update histogram
                 this.selection = this.cell.selectAll(".newbar")
                     .classed("newbar", false)
-                    .attr("class", "plotbar")
+                    .attr("class", "plotbar");
 
                 this.cell.selectAll(".newbar")
                     .data(that.init_data)
@@ -846,38 +835,6 @@ function init() {
                     var new_fitted_data = fitGaussian(realizations[key]);
                     that.draw_fit(new_fitted_data[0], +i, +j, new_fitted_data[1]);
 
-                    /*this.line.x(function (d) {
-                            return that.x(d.x)
-                        })
-                        .y(function (d) {
-                            return that.y(d.y)
-                        });
-
-                    this.lines =  this.g.selectAll(".cell")
-                        .filter(function(d){ return d.i === +i & d.j === +j;})
-                        .selectAll(".line")
-                        .data(realizations[key]); // realizations [idx][key]
-
-                    this.lines.attr("class", "line")
-                        .attr("fill", "none")
-                        .attr("stroke", "black")
-                        .attr("opacity", 0.5/number_games[j])
-                        .attr("stroke-linejoin", "round")
-                        .attr("stroke-linecap", "round")
-                        .attr("stroke-width", 1.5)
-                        .attr("d", this.line);
-
-                    this.lines.enter().append("path")
-                        .attr("class", "line")
-                        .attr("fill", "none")
-                        .attr("stroke", "black")
-                        .attr("opacity", 0.5/number_games[j])
-                        .attr("stroke-linejoin", "round")
-                        .attr("stroke-linecap", "round")
-                        .attr("stroke-width", 1.5)
-                        .attr("d", this.line);
-
-                    this.lines.exit().remove();*/
                 }
 
             };
@@ -891,7 +848,7 @@ function init() {
                     var cell = that.g.selectAll(".cell")
                         .filter(function(d){ return d.i === e.i & d.j === e.j;});
 
-                    cell.select(".frame").attr("fill", "white")
+                    cell.select(".frame").attr("fill", "white");
 
                     // Remove bars
                     this.oldbars = cell.selectAll(".plotbar")
@@ -988,6 +945,7 @@ function init() {
                 // Reset everything
                 current_disk = 0;
                 current_game = 0;
+                histogram.clear();
                 throw_disk = true;
                 for (disk_piles = []; disk_piles.length < n_piles; disk_piles.push([]));
                 points = disk_piles.map(function (d, idx) {
