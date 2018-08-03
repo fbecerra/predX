@@ -43,7 +43,8 @@ function init() {
             current_vel,
             disk_velocity,
             max_side_vel,
-            roughness = 0.1;
+            roughness = 0.1,
+            finish_game = true;
 
         // add the disk to the scene
         scene.add(disk);
@@ -458,7 +459,10 @@ function init() {
                 }
             }
             d3.select("#text-link").on("click", function(d){
-                runNextCell();
+                if (finish_game == true) {
+                    runNextCell();
+                    finish_game = false;
+                }
             });
             d3.select("#text-save").on("click", function(d){
                 console.log("saving...")
