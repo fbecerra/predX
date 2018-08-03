@@ -44,7 +44,8 @@ function init() {
             disk_velocity,
             max_side_vel,
             roughness = 0.1,
-            finish_game = true;
+            block_finish = false,
+            block_slider = false;
 
         // add the disk to the scene
         scene.add(disk);
@@ -459,9 +460,10 @@ function init() {
                 }
             }
             d3.select("#text-link").on("click", function(d){
-                if (finish_game == true) {
+                if (block_finish == false) {
                     runNextCell();
-                    finish_game = false;
+                    block_finish = true;
+                    block_slider = true;
                 }
             });
             d3.select("#text-save").on("click", function(d){
@@ -493,10 +495,12 @@ function init() {
                     .call(d3.drag()
                         .on("start.interrupt", function() { that.slider.interrupt(); })
                         .on("start drag", function() {
-                            //plot.update_all_cells(that.x.invert(d3.event.x));
-                            plot.reset_all_cells();
-                            roughness = 0.1 * that.x.invert(d3.event.x);
-                            that.handle.attr("cx", that.x(that.x.invert(d3.event.x)));
+                            if (block_slider == false){
+                                //plot.update_all_cells(that.x.invert(d3.event.x));
+                                plot.reset_all_cells();
+                                roughness = 0.1 * that.x.invert(d3.event.x);
+                                that.handle.attr("cx", that.x(that.x.invert(d3.event.x)));
+                            }
                         }));
 
                 this.slider.insert("g", ".track-overlay")
@@ -847,12 +851,14 @@ function init() {
 
                 var that = this;
 
+                d3.selectAll(".frame").style("fill", "white");
+
+                run_all = false;
+
                 cross_data.forEach(function (e) {
 
                     var cell = that.g.selectAll(".cell")
                         .filter(function(d){ return d.i === e.i & d.j === e.j;});
-
-                    cell.select(".frame").attr("fill", "white");
 
                     // Remove bars
                     this.oldbars = cell.selectAll(".plotbar")
@@ -868,6 +874,8 @@ function init() {
                     this.legend = cell.selectAll(".parameters")
                         .data([]);
                     this.legend.exit().remove();
+
+                    e.t = true;
 
                 });
             };
@@ -957,6 +965,9 @@ function init() {
                 });
                 histogram.update(points);
                 this_data.t = false;
+            } else {
+                block_slider = false;
+                block_finish = false;
             }
         }
 
