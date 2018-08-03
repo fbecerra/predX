@@ -45,7 +45,8 @@ function init() {
             max_side_vel,
             roughness = 0.1,
             block_finish = false,
-            block_slider = false;
+            block_slider = false,
+            block_cells = false;
 
         // add the disk to the scene
         scene.add(disk);
@@ -126,6 +127,7 @@ function init() {
                     game_label.update_label(current_game+1)
                 } else {
                     throw_disk = false;
+                    block_cells = false;
                     //histogram.clear();
                     var fitted_data = fitGaussian(all_points);
                     plot.draw_fit(fitted_data[0], i, j, fitted_data[1]);
@@ -500,6 +502,7 @@ function init() {
                                 plot.reset_all_cells();
                                 roughness = 0.1 * that.x.invert(d3.event.x);
                                 that.handle.attr("cx", that.x(that.x.invert(d3.event.x)));
+                                block_finish = false;
                             }
                         }));
 
@@ -658,29 +661,32 @@ function init() {
                         .attr("height", that.cell_size)
                         .attr("fill", "white")
                         .on("click", function (d) {
-                            i = d.i;
-                            j = d.j;
-                            disks = d.x;
-                            games = d.y;
-                            all_points = [];
+                            if (block_cells == false){
+                                i = d.i;
+                                j = d.j;
+                                disks = d.x;
+                                games = d.y;
+                                all_points = [];
 
-                            disk_velocity = Math.sqrt(disks * games) * 50;
-                            max_side_vel = roughness * disk_velocity;
+                                disk_velocity = Math.sqrt(disks * games) * 50;
+                                max_side_vel = roughness * disk_velocity;
 
-                            // Reset everything
-                            current_disk = 0;
-                            current_game = 0;
-                            histogram.clear();
-                            game_label.update_label(current_game+1);
-                            throw_disk = true;
-                            for (disk_piles = []; disk_piles.length < n_piles; disk_piles.push([]));
-                            points = disk_piles.map(function (d, idx) {
-                                return {x: (idx - disk_radius) * 2 * disk_radius, y: d.length, z: -50};
-                            });
-                            //histogram.update(points);
-                            histogram.init(points);
-                            d.t = false;
-                            d3.select(this).attr("fill", "none");  // This cell is not clickable anymore
+                                // Reset everything
+                                current_disk = 0;
+                                current_game = 0;
+                                histogram.clear();
+                                game_label.update_label(current_game+1);
+                                throw_disk = true;
+                                for (disk_piles = []; disk_piles.length < n_piles; disk_piles.push([]));
+                                points = disk_piles.map(function (d, idx) {
+                                    return {x: (idx - disk_radius) * 2 * disk_radius, y: d.length, z: -50};
+                                });
+                                //histogram.update(points);
+                                histogram.init(points);
+                                d.t = false;
+                                d3.select(this).attr("fill", "none");  // This cell is not clickable anymore
+                                block_cells = true;
+                            }
                         })
                         .on("mouseover", function() { d3.select(this).style("cursor", "pointer"); })
                         .on("mouseout", function(d) { d3.select(this).style("cursor", "default"); });
@@ -967,7 +973,6 @@ function init() {
                 this_data.t = false;
             } else {
                 block_slider = false;
-                block_finish = false;
             }
         }
 
